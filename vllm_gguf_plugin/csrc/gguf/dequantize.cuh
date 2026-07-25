@@ -526,36 +526,27 @@ static void dequantize_row_iq4_xs_cuda(const void * vx, dst_t * y, const int64_t
 
 // =============================================================================
 // ROCmFPX shared UE4M3 -> FP32 scale decoder
-// Ported from rocmfp4_hip_scale.cuh (identical for all ROCmFPX formats)
+// Ported from rocmfp4_hip_scale.cuh:111-125 (rocmfpx_ue4m3_to_fp32_finite)
 // UE4M3: unsigned E4M3 (4-bit exponent, 3-bit mantissa, no sign)
+// Valid range: 0x00..0x7E; values > 0x7E decode to 0.
+// Subnormal (exp==0): man * 2^-10 = man * (1/1024)
+// Normal: fp32 bits = (exp + 119) << 23 | (man << 20), i.e. bias=8 not 15
 // =============================================================================
 __device__ __forceinline__ float rocmfpx_decode_scale_to_fp32(uint8_t x) {
-    uint32_t exp = (x >> 3) & 0xF;
-    uint32_t man = x & 0x7;
-
-    uint32_t f32_exp;
-    uint32_t f32_mant;
-
-    if (exp == 0) {
-        if (man == 0) {
-            return 0.0f;
-        }
-        // Subnormal: value = 2^(-14) * (man / 8)
-        f32_exp = 127 - 14;  // = 113
-        f32_mant = man << 20;
-        while ((f32_mant & (1u << 23)) == 0) {
-            f32_mant <<= 1;
-            f32_exp--;
-        }
-        f32_mant &= 0x7FFFFFu;
-    } else {
-        // Normal: value = 2^(exp-15) * (1 + man/8)
-        f32_exp = exp - 15 + 127;  // = exp + 112
-        f32_mant = man << 20;
+    if (x > 0x7e) {
+        return 0.0f;
     }
 
-    uint32_t f32_bits = (f32_exp << 23) | f32_mant;
-    return __uint_as_float(f32_bits);
+    const int exp = (x >> 3) & 0xF;
+    const int man = x & 0x7;
+
+    if (exp == 0) {
+        return (float) man * (1.0f / 1024.0f);
+    }
+
+    const uint32_t bits =
+        ((uint32_t) exp + 119u) << 23 | ((uint32_t) man << 20);
+    return __uint_as_float(bits);
 }
 
 // Backward-compatible alias for existing Q4 code
@@ -627,6 +618,45 @@ static void dequantize_row_rocmfp4_q4_0_cuda(const void * vx, dst_t * y,
                         CUDA_DEQUANTIZE_BLOCK_SIZE;
     dequantize_block_rocmfp4_q4_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
                                      stream>>>(vx, y, k);
+}
+
+// =============================================================================
+// ROCmFPX Q4_0_FAST dequantization (GGML type 101)
+// Fast variant: 1 UE4M3 scale shared across all 32 weights (17 bytes/block)
+// Same Codebook10 as the standard Q4 variant
+// =============================================================================
+__global__ void dequantize_block_rocmfp4_fast_q4_0(const void* __restrict__ vx,
+                                                    dst_t* __restrict__ y,
+                                                    int64_t k) {
+    const int64_t nb = (k + QK4_0_ROCMFP4 - 1) / QK4_0_ROCMFP4;
+    const block_rocmfp4_fast* __restrict__ x =
+        static_cast<const block_rocmfp4_fast*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float d = rocmfpx_decode_scale_to_fp32(x[i].e[0]);
+
+        for (int j = 0; j < 16; j++) {
+            uint8_t q = x[i].qs[j];
+            int8_t v_lo = ROCMFP4_CODEBOOK10[q & 0x0f];
+            int8_t v_hi = ROCMFP4_CODEBOOK10[q >> 4];
+            y[i * QK4_0_ROCMFP4 + j * 2 + 0] =
+                static_cast<dst_t>(v_lo) * d;
+            y[i * QK4_0_ROCMFP4 + j * 2 + 1] =
+                static_cast<dst_t>(v_hi) * d;
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfp4_fast_q4_0_cuda(const void * vx, dst_t * y,
+                                                   const int64_t k,
+                                                   cudaStream_t stream) {
+    const int nb = (k + QK4_0_ROCMFP4 - 1) / QK4_0_ROCMFP4;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfp4_fast_q4_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE,
+                                          0, stream>>>(vx, y, k);
 }
 
 // =============================================================================
@@ -734,9 +764,10 @@ static void dequantize_row_rocmfpx_q3_0_cuda(const void * vx, dst_t * y,
 // =============================================================================
 __device__ __forceinline__ int rocmfpx_decode_fp6_code(uint8_t code) {
     // 6-bit sign-magnitude: bit 5 = sign, bits 0-4 = magnitude (0-31)
-    int mag = code & 0x1F;
-    int sign = (code >> 5) & 0x01;
-    return sign ? -mag : mag;
+    // Asymmetric range [-32, +31]: code 0x20 (sign=1, mag=0) -> -32
+    // Ported from rocmfpx.c:677-679
+    const int mag = code & 31u;
+    return (code & 32u) ? -(mag == 0 ? 32 : mag) : mag;
 }
 
 __device__ __forceinline__ void rocmfpx_fp6_unpack4(const uint8_t* src,
@@ -872,6 +903,8 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_iq1_m_cuda;
         case GGML_TYPE_Q4_0_ROCMFP4:
             return dequantize_row_rocmfp4_q4_0_cuda;
+        case GGML_TYPE_Q4_0_ROCMFP4_FAST:
+            return dequantize_row_rocmfp4_fast_q4_0_cuda;
         case GGML_TYPE_Q2_0_ROCMFPX:
             return dequantize_row_rocmfpx_q2_0_cuda;
         case GGML_TYPE_Q3_0_ROCMFPX:
