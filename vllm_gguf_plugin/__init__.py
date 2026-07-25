@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
+# Patch gguf enum for ROCmFPX custom types before any GGUF reading
+from . import rocmfpx_types  # noqa: F401
+
 from .config_parser import GGUFConfigParser
 from .loader import GGUFModelLoader
 from .plugin import OOTGGUFConfig, OOTGGUFModelLoader, register

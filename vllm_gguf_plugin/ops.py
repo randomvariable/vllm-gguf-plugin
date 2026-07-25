@@ -21,6 +21,11 @@ from .triton.gemm.utils import (
     GGML_TYPE_Q2_K,
     GGML_TYPE_Q3_K,
     GGML_TYPE_Q4_0,
+    GGML_TYPE_Q4_0_ROCMFP4,
+    GGML_TYPE_Q2_0_ROCMFPX,
+    GGML_TYPE_Q3_0_ROCMFPX,
+    GGML_TYPE_Q6_0_ROCMFPX,
+    GGML_TYPE_Q8_0_ROCMFPX,
     GGML_TYPE_Q4_1,
     GGML_TYPE_Q4_K,
     GGML_TYPE_Q5_0,
@@ -72,6 +77,11 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_IQ2_S,
         GGML_TYPE_IQ4_XS,
         GGML_TYPE_IQ1_M,
+        GGML_TYPE_Q4_0_ROCMFP4,
+        GGML_TYPE_Q2_0_ROCMFPX,
+        GGML_TYPE_Q3_0_ROCMFPX,
+        GGML_TYPE_Q6_0_ROCMFPX,
+        GGML_TYPE_Q8_0_ROCMFPX,
     }
 )
 _CUDA_GEMM_QUANT_TYPES = frozenset(

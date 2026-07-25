@@ -1148,3 +1148,80 @@ static __device__ __forceinline__ uint32_t __vsub4(const uint32_t a, const uint3
            (static_cast<uint8_t>(((a & 0x000000ff) >>  0) - ((b & 0x000000ff) >>  0)) <<  0);
 }
 #endif // defined(USE_ROCM)
+
+// =============================================================================
+// ROCmFPX Q4_0 custom block types (GGML type 100/101)
+// Ported from ROCmFPX/ggml/rocmfp4/rocmfp4.h
+// =============================================================================
+#define GGML_TYPE_Q4_0_ROCMFP4 100
+#define GGML_TYPE_Q4_0_ROCMFP4_FAST 101
+#define QK4_0_ROCMFP4 32
+
+// Standard variant: 2 UE4M3 half-scales (one per 16-weight sub-block)
+typedef struct __attribute__((packed)) {
+    uint8_t qs[16];  // 32 x 4-bit indices into Codebook10
+    uint8_t e[2];    // 2 x UE4M3 FP32 half-scales
+} block_rocmfp4;
+
+// Fast variant: 1 UE4M3 scale (shared for all 32 weights)
+typedef struct __attribute__((packed)) {
+    uint8_t qs[16];  // 32 x 4-bit indices into Codebook10
+    uint8_t e[1];    // 1 x UE4M3 FP32 scale
+} block_rocmfp4_fast;
+
+// =============================================================================
+// ROCmFPX Q2_0 (GGML type 107, aka iFP2)
+// 2.5 bpw: 8 bytes of 2-bit indices + 2 bytes of UE4M3 scales = 10 bytes/32w
+// Codebook S40 MORD: {-4, -1, +1, +4}
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.h
+// =============================================================================
+#define GGML_TYPE_Q2_0_ROCMFPX 107
+#define QK2_0_ROCMFPX 32
+
+typedef struct __attribute__((packed)) {
+    uint8_t qs[8];   // 32 x 2-bit indices (4 indices per byte)
+    uint8_t e[2];    // 2 x UE4M3 FP32 half-scales (one per 16 weights)
+} block_rocmfp2;
+
+// =============================================================================
+// ROCmFPX Q3_0 (GGML type 104)
+// 3.5 bpw: 12 bytes of 3-bit indices + 2 bytes of UE4M3 scales = 14 bytes/32w
+// Codebook: {0, ±1, ±2, ±4} (4 levels, 3 bits each)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.h
+// =============================================================================
+#define GGML_TYPE_Q3_0_ROCMFPX 104
+#define QK3_0_ROCMFPX 32
+
+typedef struct __attribute__((packed)) {
+    uint8_t qs[12];  // 32 x 3-bit indices (8 indices per 3 bytes)
+    uint8_t e[2];    // 2 x UE4M3 FP32 half-scales (one per 16 weights)
+} block_rocmfp3;
+
+// =============================================================================
+// ROCmFPX Q6_0 (GGML type 102)
+// 6.5 bpw: 24 bytes of 6-bit sign-magnitude codes + 2 bytes of UE4M3 scales = 26 bytes/32w
+// Sign-magnitude integer up to ±31 (5-bit magnitude + 1-bit sign)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.h
+// =============================================================================
+#define GGML_TYPE_Q6_0_ROCMFPX 102
+#define QK6_0_ROCMFPX 32
+
+typedef struct __attribute__((packed)) {
+    uint8_t qs[24];  // 32 x 6-bit sign-magnitude codes (4 codes per 3 bytes)
+    uint8_t e[2];    // 2 x UE4M3 FP32 half-scales (one per 16 weights)
+} block_rocmfp6;
+
+// =============================================================================
+// ROCmFPX Q8_0 (GGML type 103)
+// 8.25 bpw: 32 bytes of signed int8 + 1 byte of UE4M3 scale = 33 bytes/32w
+// Direct signed int8 clamped [-127, 127]
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.h
+// =============================================================================
+#define GGML_TYPE_Q8_0_ROCMFPX 103
+#define QK8_0_ROCMFPX 32
+
+typedef struct __attribute__((packed)) {
+    int8_t qs[32];   // 32 x signed int8 codes
+    uint8_t e[1];    // 1 x UE4M3 FP32 scale (per block)
+} block_rocmfp8;
+

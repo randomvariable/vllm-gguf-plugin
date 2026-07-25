@@ -524,6 +524,311 @@ static void dequantize_row_iq4_xs_cuda(const void * vx, dst_t * y, const int64_t
     dequantize_block_iq4_xs<<<nb, 32, 0, stream>>>(vx, y);
 }
 
+// =============================================================================
+// ROCmFPX shared UE4M3 -> FP32 scale decoder
+// Ported from rocmfp4_hip_scale.cuh (identical for all ROCmFPX formats)
+// UE4M3: unsigned E4M3 (4-bit exponent, 3-bit mantissa, no sign)
+// =============================================================================
+__device__ __forceinline__ float rocmfpx_decode_scale_to_fp32(uint8_t x) {
+    uint32_t exp = (x >> 3) & 0xF;
+    uint32_t man = x & 0x7;
+
+    uint32_t f32_exp;
+    uint32_t f32_mant;
+
+    if (exp == 0) {
+        if (man == 0) {
+            return 0.0f;
+        }
+        // Subnormal: value = 2^(-14) * (man / 8)
+        f32_exp = 127 - 14;  // = 113
+        f32_mant = man << 20;
+        while ((f32_mant & (1u << 23)) == 0) {
+            f32_mant <<= 1;
+            f32_exp--;
+        }
+        f32_mant &= 0x7FFFFFu;
+    } else {
+        // Normal: value = 2^(exp-15) * (1 + man/8)
+        f32_exp = exp - 15 + 127;  // = exp + 112
+        f32_mant = man << 20;
+    }
+
+    uint32_t f32_bits = (f32_exp << 23) | f32_mant;
+    return __uint_as_float(f32_bits);
+}
+
+// Backward-compatible alias for existing Q4 code
+#define rocmfp4_decode_scale_to_fp32 rocmfpx_decode_scale_to_fp32
+
+// =============================================================================
+// ROCmFPX Q4_0 dequantization (GGML type 100)
+// Ported from ROCmFPX/ggml/rocmfp4/rocmfp4.c
+// =============================================================================
+
+// Codebook10: maps 4-bit index to signed int8 value
+// Indices 0-7: {0, 1, 2, 3, 4, 6, 8, 10}
+// Indices 8-15: {0, -1, -2, -3, -4, -6, -8, -10}
+__constant__ static const int8_t ROCMFP4_CODEBOOK10[16] = {
+    0, 1, 2, 3, 4, 6, 8, 10,
+    0, -1, -2, -3, -4, -6, -8, -10
+};
+
+// =============================================================================
+// ROCmFPX Q2_0 dequantization (GGML type 107, aka iFP2)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c:240-244 (S40 FP2 codebook)
+// Codebook S40 MORD: {-4, -1, +1, +4} (2-bit index -> signed value)
+// =============================================================================
+__constant__ static const int8_t ROCMFP2_CODEBOOK_S40[4] = {
+    -4, -1, 1, 4
+};
+
+// =============================================================================
+// ROCmFPX Q3_0 dequantization (GGML type 104)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c (FP3 codebook)
+// Codebook: {0, 1, 2, 4, 0, -1, -2, -4} (3-bit index, 8 entries)
+// =============================================================================
+__constant__ static const int8_t ROCMFP3_CODEBOOK[8] = {
+    0, 1, 2, 4, 0, -1, -2, -4
+};
+
+// Global kernel for Q4_0_ROCMFP4 dequantization
+// Each thread handles one GGML block (32 weights from 18 bytes)
+__global__ void dequantize_block_rocmfp4_q4_0(const void* __restrict__ vx,
+                                               dst_t* __restrict__ y,
+                                               int64_t k) {
+    const int64_t nb = (k + QK4_0_ROCMFP4 - 1) / QK4_0_ROCMFP4;
+    const block_rocmfp4* __restrict__ x =
+        static_cast<const block_rocmfp4*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float d0 = rocmfp4_decode_scale_to_fp32(x[i].e[0]);
+        float d1 = rocmfp4_decode_scale_to_fp32(x[i].e[1]);
+
+        for (int j = 0; j < 16; j++) {
+            uint8_t q = x[i].qs[j];
+            int8_t v_lo = ROCMFP4_CODEBOOK10[q & 0x0f];
+            int8_t v_hi = ROCMFP4_CODEBOOK10[q >> 4];
+            y[i * QK4_0_ROCMFP4 + j * 2 + 0] =
+                static_cast<dst_t>(v_lo) * d0;
+            y[i * QK4_0_ROCMFP4 + j * 2 + 1] =
+                static_cast<dst_t>(v_hi) * d1;
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfp4_q4_0_cuda(const void * vx, dst_t * y,
+                                              const int64_t k,
+                                              cudaStream_t stream) {
+    const int nb = (k + QK4_0_ROCMFP4 - 1) / QK4_0_ROCMFP4;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfp4_q4_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
+                                     stream>>>(vx, y, k);
+}
+
+// =============================================================================
+// ROCmFPX Q2_0 dequantization (GGML type 107, aka iFP2)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c:381-396 (rocmfpx_dequantize_row_fp2)
+// Each thread handles one GGML block (32 weights from 10 bytes)
+// =============================================================================
+__global__ void dequantize_block_rocmfpx_q2_0(const void* __restrict__ vx,
+                                               dst_t* __restrict__ y,
+                                               int64_t k) {
+    const int64_t nb = (k + QK2_0_ROCMFPX - 1) / QK2_0_ROCMFPX;
+    const block_rocmfp2* __restrict__ x =
+        static_cast<const block_rocmfp2*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float d0 = rocmfpx_decode_scale_to_fp32(x[i].e[0]);
+        float d1 = rocmfpx_decode_scale_to_fp32(x[i].e[1]);
+
+        for (int half = 0; half < 2; half++) {
+            float scale = (half == 0) ? d0 : d1;
+            for (int j = 0; j < 16; j++) {
+                uint8_t code = (x[i].qs[half * 4 + j / 4] >> (2 * (j % 4))) & 3u;
+                int8_t val = ROCMFP2_CODEBOOK_S40[code];
+                y[i * QK2_0_ROCMFPX + half * 16 + j] =
+                    static_cast<dst_t>(val) * scale;
+            }
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfpx_q2_0_cuda(const void * vx, dst_t * y,
+                                              const int64_t k,
+                                              cudaStream_t stream) {
+    const int nb = (k + QK2_0_ROCMFPX - 1) / QK2_0_ROCMFPX;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfpx_q2_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
+                                     stream>>>(vx, y, k);
+}
+
+// =============================================================================
+// ROCmFPX Q3_0 dequantization (GGML type 104)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c (rocmfpx_dequantize_row_fp3)
+// 3-bit indices packed 8 per 3 bytes
+// Each thread handles one GGML block (32 weights from 14 bytes)
+// =============================================================================
+__global__ void dequantize_block_rocmfpx_q3_0(const void* __restrict__ vx,
+                                               dst_t* __restrict__ y,
+                                               int64_t k) {
+    const int64_t nb = (k + QK3_0_ROCMFPX - 1) / QK3_0_ROCMFPX;
+    const block_rocmfp3* __restrict__ x =
+        static_cast<const block_rocmfp3*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float d0 = rocmfpx_decode_scale_to_fp32(x[i].e[0]);
+        float d1 = rocmfpx_decode_scale_to_fp32(x[i].e[1]);
+
+        // Unpack 32 x 3-bit codes from 12 bytes
+        // Each group of 8 codes is packed in 3 bytes
+        uint8_t codes[32];
+        for (int g = 0; g < 4; g++) {
+            const uint8_t* src = x[i].qs + g * 3;
+            uint8_t* dst = codes + g * 8;
+            dst[0] = src[0] & 0x07;
+            dst[1] = (src[0] >> 3) & 0x07;
+            dst[2] = ((src[0] >> 6) | (src[1] << 2)) & 0x07;
+            dst[3] = (src[1] >> 1) & 0x07;
+            dst[4] = (src[1] >> 4) & 0x07;
+            dst[5] = ((src[1] >> 7) | (src[2] << 1)) & 0x07;
+            dst[6] = (src[2] >> 2) & 0x07;
+            dst[7] = (src[2] >> 5) & 0x07;
+        }
+
+        for (int half = 0; half < 2; half++) {
+            float scale = (half == 0) ? d0 : d1;
+            for (int j = 0; j < 16; j++) {
+                uint8_t code = codes[half * 16 + j];
+                int8_t val = ROCMFP3_CODEBOOK[code & 0x07];
+                y[i * QK3_0_ROCMFPX + half * 16 + j] =
+                    static_cast<dst_t>(val) * scale;
+            }
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfpx_q3_0_cuda(const void * vx, dst_t * y,
+                                              const int64_t k,
+                                              cudaStream_t stream) {
+    const int nb = (k + QK3_0_ROCMFPX - 1) / QK3_0_ROCMFPX;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfpx_q3_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
+                                     stream>>>(vx, y, k);
+}
+
+// =============================================================================
+// ROCmFPX Q6_0 dequantization (GGML type 102)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c:1160-1185 (rocmfpx_dequantize_row_fp6)
+// 6-bit sign-magnitude codes packed 4 per 3 bytes
+// Each thread handles one GGML block (32 weights from 26 bytes)
+// =============================================================================
+__device__ __forceinline__ int rocmfpx_decode_fp6_code(uint8_t code) {
+    // 6-bit sign-magnitude: bit 5 = sign, bits 0-4 = magnitude (0-31)
+    int mag = code & 0x1F;
+    int sign = (code >> 5) & 0x01;
+    return sign ? -mag : mag;
+}
+
+__device__ __forceinline__ void rocmfpx_fp6_unpack4(const uint8_t* src,
+                                                     uint8_t* dst) {
+    // Unpack 4 x 6-bit codes from 3 bytes
+    dst[0] = src[0] & 0x3F;
+    dst[1] = ((src[0] >> 6) | (src[1] << 2)) & 0x3F;
+    dst[2] = ((src[1] >> 4) | (src[2] << 4)) & 0x3F;
+    dst[3] = (src[2] >> 2) & 0x3F;
+}
+
+__global__ void dequantize_block_rocmfpx_q6_0(const void* __restrict__ vx,
+                                               dst_t* __restrict__ y,
+                                               int64_t k) {
+    const int64_t nb = (k + QK6_0_ROCMFPX - 1) / QK6_0_ROCMFPX;
+    const block_rocmfp6* __restrict__ x =
+        static_cast<const block_rocmfp6*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float d0 = rocmfpx_decode_scale_to_fp32(x[i].e[0]);
+        float d1 = rocmfpx_decode_scale_to_fp32(x[i].e[1]);
+
+        // Unpack all 32 codes in 8 groups of 4 (8 x 3 bytes = 24 bytes)
+        uint8_t codes[32];
+        rocmfpx_fp6_unpack4(x[i].qs,      codes);
+        rocmfpx_fp6_unpack4(x[i].qs +  3, codes +  4);
+        rocmfpx_fp6_unpack4(x[i].qs +  6, codes +  8);
+        rocmfpx_fp6_unpack4(x[i].qs +  9, codes + 12);
+        rocmfpx_fp6_unpack4(x[i].qs + 12, codes + 16);
+        rocmfpx_fp6_unpack4(x[i].qs + 15, codes + 20);
+        rocmfpx_fp6_unpack4(x[i].qs + 18, codes + 24);
+        rocmfpx_fp6_unpack4(x[i].qs + 21, codes + 28);
+
+        for (int half = 0; half < 2; half++) {
+            float scale = (half == 0) ? d0 : d1;
+            for (int j = 0; j < 16; j++) {
+                int idx = half * 16 + j;
+                int val = rocmfpx_decode_fp6_code(codes[idx]);
+                y[i * QK6_0_ROCMFPX + idx] =
+                    static_cast<dst_t>(val) * scale;
+            }
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfpx_q6_0_cuda(const void * vx, dst_t * y,
+                                              const int64_t k,
+                                              cudaStream_t stream) {
+    const int nb = (k + QK6_0_ROCMFPX - 1) / QK6_0_ROCMFPX;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfpx_q6_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
+                                     stream>>>(vx, y, k);
+}
+
+// =============================================================================
+// ROCmFPX Q8_0 dequantization (GGML type 103)
+// Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c (rocmfpx_dequantize_row_fp8)
+// Direct signed int8 clamped [-127, 127]
+// Each thread handles one GGML block (32 weights from 33 bytes)
+// =============================================================================
+__global__ void dequantize_block_rocmfpx_q8_0(const void* __restrict__ vx,
+                                               dst_t* __restrict__ y,
+                                               int64_t k) {
+    const int64_t nb = (k + QK8_0_ROCMFPX - 1) / QK8_0_ROCMFPX;
+    const block_rocmfp8* __restrict__ x =
+        static_cast<const block_rocmfp8*>(vx);
+
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nb;
+         i += blockDim.x * gridDim.x) {
+        float scale = rocmfpx_decode_scale_to_fp32(x[i].e[0]);
+
+        for (int j = 0; j < 32; j++) {
+            int val = (int) x[i].qs[j];
+            y[i * QK8_0_ROCMFPX + j] = static_cast<dst_t>(val) * scale;
+        }
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_rocmfpx_q8_0_cuda(const void * vx, dst_t * y,
+                                              const int64_t k,
+                                              cudaStream_t stream) {
+    const int nb = (k + QK8_0_ROCMFPX - 1) / QK8_0_ROCMFPX;
+    const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
+                        CUDA_DEQUANTIZE_BLOCK_SIZE;
+    dequantize_block_rocmfpx_q8_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE, 0,
+                                     stream>>>(vx, y, k);
+}
+
 template<typename dst_t>
 static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
     switch (type) {
@@ -565,6 +870,16 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_iq4_xs_cuda;
         case 29:
             return dequantize_row_iq1_m_cuda;
+        case GGML_TYPE_Q4_0_ROCMFP4:
+            return dequantize_row_rocmfp4_q4_0_cuda;
+        case GGML_TYPE_Q2_0_ROCMFPX:
+            return dequantize_row_rocmfpx_q2_0_cuda;
+        case GGML_TYPE_Q3_0_ROCMFPX:
+            return dequantize_row_rocmfpx_q3_0_cuda;
+        case GGML_TYPE_Q6_0_ROCMFPX:
+            return dequantize_row_rocmfpx_q6_0_cuda;
+        case GGML_TYPE_Q8_0_ROCMFPX:
+            return dequantize_row_rocmfpx_q8_0_cuda;
         default:
             return nullptr;
     }
