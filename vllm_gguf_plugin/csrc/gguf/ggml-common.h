@@ -1225,3 +1225,50 @@ typedef struct __attribute__((packed)) {
     uint8_t e[1];    // 1 x UE4M3 FP32 scale (per block)
 } block_rocmfp8;
 
+// ik_llama.cpp K-variant i-quant types
+// Type IDs chosen to not collide with existing GGML enum values
+#define GGML_TYPE_IQ2_K  137
+#define GGML_TYPE_IQ3_K  138
+#define GGML_TYPE_IQ4_K  139
+#define GGML_TYPE_IQ4_KS 144
+
+#define QK_IQ2_K 256
+typedef struct __attribute__((packed)) {
+    half    d;
+    uint16_t extra;
+    uint8_t  scales[QK_IQ2_K/32];
+    uint8_t  qs[QK_IQ2_K/4];
+} block_iq2_k;
+static_assert(sizeof(block_iq2_k) == sizeof(half) + sizeof(uint16_t) + QK_IQ2_K/32 + QK_IQ2_K/4, "wrong iq2_k block size/padding");
+
+#define QK_IQ3_K 256
+typedef struct __attribute__((packed)) {
+    half    d;
+    uint16_t extra;
+    uint16_t scales_h;
+    uint8_t  scales_l[QK_IQ3_K/32];
+    uint8_t  qs[QK_IQ3_K/4];
+    uint8_t  qh[QK_IQ3_K/8];
+} block_iq3_k;
+static_assert(sizeof(block_iq3_k) == sizeof(half) + 2*sizeof(uint16_t) + QK_IQ3_K/32 + QK_IQ3_K/4 + QK_IQ3_K/8, "wrong iq3_k block size/padding");
+
+#define QK_IQ4_K 256
+typedef struct __attribute__((packed)) {
+    half    d;
+    uint16_t extra;
+    uint8_t  scales_h[QK_IQ4_K/64];
+    uint8_t  scales_l[QK_IQ4_K/32];
+    uint8_t  qs[QK_IQ4_K/2];
+} block_iq4_k;
+static_assert(sizeof(block_iq4_k) == sizeof(half) + sizeof(uint16_t) + QK_IQ4_K/2 + 3*QK_IQ4_K/64, "wrong iq4_k block size/padding");
+
+// IQ4_KS has a row-prefix FP32 scale before the per-super-block data.
+// The block struct itself does NOT include the FP32 prefix; the dequant
+// kernel handles the prefix offset explicitly (see dequantize.cuh).
+#define QK_IQ4_KS 256
+typedef struct __attribute__((packed)) {
+    uint8_t  scales[QK_IQ4_KS/32];
+    uint8_t  qs[QK_IQ4_KS/2];
+} block_iq4_ks;
+static_assert(sizeof(block_iq4_ks) == QK_IQ4_KS/32 + QK_IQ4_KS/2, "wrong iq4_ks block size/padding");
+
