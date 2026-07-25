@@ -11,7 +11,7 @@ Type IDs:
   137 = GGML_TYPE_IQ2_K  (block_iq2_k,  76 bytes/256 weights, 2.375 bpw)
    138 = GGML_TYPE_IQ3_K  (block_iq3_k, 110 bytes/256 weights, 3.44 bpw)
    139 = GGML_TYPE_IQ4_K  (block_iq4_k, 144 bytes/256 weights, 4.5 bpw)
-  144 = GGML_TYPE_IQ4_KS (block_iq4_ks, 136 bytes/256 weights, 4.25 bpw)
+   144 = GGML_TYPE_IQ4_KS (block_iq4_ks, 136 bytes/256 weights + 4B row-prefix FP32 = 140 on-disk bytes/row, 4.25 bpw)
 
 All use QK_K=256 super-blocks with software dequant and a dual-codebook
 lookup via the `extra` field. IQ4_KS has a row-prefix FP32 scale.
@@ -37,7 +37,12 @@ QK_IQ4_K = 256
 IQ4_K_BLOCK_BYTES = 144  # half(2) + uint16(2) + scales_h[4] + scales_l[8] + qs[128] = 144
 
 QK_IQ4_KS = 256
-IQ4_KS_BLOCK_BYTES = 136  # scales[8] + qs[128] = 136 (row-prefix FP32 handled separately)
+# Effective on-disk row stride: 4-byte FP32 prefix + 136-byte block = 140.
+# This is NOT sizeof(block_iq4_ks) — it includes the per-row FP32 scale
+# that ggml stores as row_meta_size (ggml.c:4790-4792). The gguf package
+# uses this value for tensor byte-size computation, so it must reflect
+# the actual on-disk layout including the prefix.
+IQ4_KS_BLOCK_BYTES = 140  # sizeof(float) + sizeof(block_iq4_ks) = 4 + 136
 
 
 def _patch_gguf_enum():

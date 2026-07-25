@@ -1024,27 +1024,59 @@ static void dequantize_row_iq4_k_cuda(const void* vx, dst_t* y,
     dequantize_block_iq4_k<<<nb, 32, 0, stream>>>(vx, y);
 }
 
-// IQ4_KS: 144 bytes/256w + 4-byte row-prefix FP32 scale
+// ---------------------------------------------------------------------------
+// Row-prefix FP32 pattern (reusable for IQ4_KS, IQ4_KSS, IQ4_KT, etc.)
+//
+// These formats prepend a 4-byte FP32 scale (`d`) to each row of super-blocks
+// on disk. The layout per row is:
+//   [float d][block_type_0][block_type_1]...[block_type_(n_per_row-1)]
+//
+// On-disk row stride = sizeof(float) + sizeof(block_type) * n_per_row.
+//
+// For all current row-prefix types (IQ4_KS, IQ4_KSS), n_per_row = 1
+// (one super-block per row, QK_K = blck_size = 256), giving:
+//   row_stride = 4 + sizeof(block_type)
+//
+// The kernel uses blockIdx.x as a global super-block index, derives the
+// row from it, reads the per-row FP32 prefix at the correct row offset,
+// then indexes to the local block within that row.
+//
+// Reference: ik_llama.cpp ggml/src/ggml-cuda/convert.cu:778-805
+// ---------------------------------------------------------------------------
+
+// IQ4_KS: 136-byte block + 4-byte row-prefix FP32 scale = 140 bytes/row
 // Simplest format: single codebook offset, byte scale per 32-weight group
 // Block struct (after FP32 prefix): uint8 scales[8], uint8 qs[128]
-// Note: the FP32 prefix is per-ROW, not per-super-block. The block_iq4_ks
-// array starts at (float*)x + 1.
+// n_per_row = 1 (one 256-weight super-block per row)
 __global__ void dequantize_block_iq4_ks(const void* __restrict__ vx,
                                          dst_t* __restrict__ yy,
                                          int64_t k) {
-    // The row data starts with a float d prefix before the block array
-    const float* dptr = (const float*)vx;
-    const float d = *dptr;
-    const block_iq4_ks* __restrict__ x = (const block_iq4_ks*)(dptr + 1);
+    // Row-prefix constants for IQ4_KS.
+    // sizeof(block_iq4_ks) = 8 + 128 = 136
+    // row_stride = sizeof(float) + 136 * n_per_row = 4 + 136 = 140
+    constexpr int IQ4_KS_N_PER_ROW = 1;
+    constexpr int IQ4_KS_ROW_STRIDE = 4 + 136 * IQ4_KS_N_PER_ROW;
 
+    const int i = blockIdx.x;   // global super-block index
+    const int ib32 = threadIdx.x;  // 0..7 (8 groups of 32 weights)
     const int nblock = k / QK_K;
-    const int i = blockIdx.x;
-    const int ib32 = threadIdx.x;  // 0..7
 
     if (i >= nblock || ib32 >= QK_K / 32) return;
 
-    const uint8_t* qs = x[i].qs + ib32 * 16;
-    uint8_t scale_byte = x[i].scales[ib32];
+    // Derive row and local block index within that row.
+    const int row = i / IQ4_KS_N_PER_ROW;
+    const int local_ib = i - row * IQ4_KS_N_PER_ROW;
+
+    // Read per-row FP32 prefix at the correct row offset.
+    const float* row_ptr = (const float*)((const int8_t*)vx + row * IQ4_KS_ROW_STRIDE);
+    const float d = *row_ptr;
+
+    // Block array starts right after the FP32 prefix.
+    const block_iq4_ks* __restrict__ x =
+        (const block_iq4_ks*)((const int8_t*)row_ptr + sizeof(float));
+
+    const uint8_t* qs = x[local_ib].qs + ib32 * 16;
+    uint8_t scale_byte = x[local_ib].scales[ib32];
     float dl = d * ((int)(scale_byte & 254) - 127);
     const int8_t* values = kvalues_iq4k + ((scale_byte & 1) << 4);
 
@@ -1059,7 +1091,7 @@ __global__ void dequantize_block_iq4_ks(const void* __restrict__ vx,
 template<typename dst_t>
 static void dequantize_row_iq4_ks_cuda(const void* vx, dst_t* y,
                                         const int64_t k, cudaStream_t stream) {
-    const int nb = (k + QK_K - 1) / QK_K;
+    const int nb = k / QK_K;  // total super-blocks = total rows (n_per_row=1)
     dequantize_block_iq4_ks<<<nb, 32, 0, stream>>>(vx, y, k);
 }
 
