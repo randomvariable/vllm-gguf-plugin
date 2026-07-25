@@ -11,11 +11,15 @@ from .triton.gemm.interface import ggml_mul_mat_a8_triton
 from .triton.gemm.utils import (
     GGML_TYPE_IQ1_M,
     GGML_TYPE_IQ1_S,
+    GGML_TYPE_IQ2_K,
     GGML_TYPE_IQ2_S,
     GGML_TYPE_IQ2_XS,
     GGML_TYPE_IQ2_XXS,
+    GGML_TYPE_IQ3_K,
     GGML_TYPE_IQ3_S,
     GGML_TYPE_IQ3_XXS,
+    GGML_TYPE_IQ4_K,
+    GGML_TYPE_IQ4_KS,
     GGML_TYPE_IQ4_NL,
     GGML_TYPE_IQ4_XS,
     GGML_TYPE_Q2_K,
@@ -82,6 +86,10 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_Q3_0_ROCMFPX,
         GGML_TYPE_Q6_0_ROCMFPX,
         GGML_TYPE_Q8_0_ROCMFPX,
+        GGML_TYPE_IQ2_K,
+        GGML_TYPE_IQ3_K,
+        GGML_TYPE_IQ4_K,
+        GGML_TYPE_IQ4_KS,
     }
 )
 _CUDA_GEMM_QUANT_TYPES = frozenset(

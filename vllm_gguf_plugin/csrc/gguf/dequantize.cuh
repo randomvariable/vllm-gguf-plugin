@@ -860,6 +860,209 @@ static void dequantize_row_rocmfpx_q8_0_cuda(const void * vx, dst_t * y,
                                      stream>>>(vx, y, k);
 }
 
+// =============================================================================
+// ik_llama.cpp K-variant i-quant dequant kernels
+// Ported from ik_llama.cpp/ggml/src/iqk/iqk_quantize.cpp
+// All use QK_K=256 super-blocks, software-dequant, dual-codebook lookup.
+// =============================================================================
+
+// Codebook tables for K-variant i-quant formats
+__device__ __constant__ int8_t kvalues_iq2nl[8] = {
+    -31, -13, 1, 17,   -26, -8, 6, 22
+};
+
+__device__ __constant__ int8_t kvalues_iq3nl[16] = {
+    -63, -40, -23, -10, 1, 13, 28,  47,
+    -59, -36, -19,  -6, 5, 17, 32,  51,
+};
+
+// iq4k_values already exists as kvalues_iq4nl[16] above; we need the full
+// 32-entry table for IQ4_K/IQ4_KS.
+__device__ __constant__ int8_t kvalues_iq4k[32] = {
+    -127, -104, -83, -65, -49, -35, -22, -10, 1, 13, 25, 38, 53, 69, 89, 113,
+    -123, -100, -79, -61, -45, -31, -18,  -6, 5, 17, 29, 42, 57, 73, 93, 117,
+};
+
+// IQ2_K: 78 bytes/256w, 2-bit dual-codebook
+// Block: half d, uint16 extra, uint8 scales[8], uint8 qs[64]
+// Per ib32 (32 weights): nibble scale, dual codebook via extra bits
+__global__ void dequantize_block_iq2_k(const void* __restrict__ vx,
+                                        dst_t* __restrict__ yy) {
+    const int i = blockIdx.x;
+    const block_iq2_k* __restrict__ x = (const block_iq2_k*)vx;
+    const int tid = threadIdx.x;
+    const int ib32 = tid;  // 0..7, each thread handles one 32-weight group
+
+    if (ib32 >= QK_K / 32) return;
+
+    const float d = __half2float(x[i].d);
+    uint16_t extra = x[i].extra;
+    const uint8_t* qs = x[i].qs;
+    const uint8_t* scales = x[i].scales;
+
+    // Each thread processes its own ib32 group
+    // shift = 2 * (ib32 % 4), qs advances by 32 bytes every 4 ib32s
+    int shift = 2 * (ib32 % 4);
+    const uint8_t* qs_base = qs + (ib32 / 4) * 32;
+
+    float dl1 = d * ((scales[ib32] & 0xf) - 8);
+    float dl2 = d * ((scales[ib32] >> 4) - 8);
+
+    // extra bits: bit 0 selects codebook for dl1, bit 1 for dl2
+    // But extra is per-super-block and bits are consumed in ib32 order.
+    // We need the original extra bits for THIS ib32.
+    uint16_t extra_shifted = extra >> (2 * ib32);
+    const int8_t* values1 = (extra_shifted & 1) ? kvalues_iq2nl + 4 : kvalues_iq2nl;
+    const int8_t* values2 = (extra_shifted & 2) ? kvalues_iq2nl + 4 : kvalues_iq2nl;
+
+    dst_t* y = yy + i * QK_K + ib32 * 32;
+
+    for (int j = 0; j < 16; ++j) {
+        y[j + 0]  = dl1 * values1[(qs_base[j + 0]  >> shift) & 3];
+        y[j + 16] = dl2 * values2[(qs_base[j + 16] >> shift) & 3];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq2_k_cuda(const void* vx, dst_t* y,
+                                       const int64_t k, cudaStream_t stream) {
+    const int nb = (k + QK_K - 1) / QK_K;
+    dequantize_block_iq2_k<<<nb, 32, 0, stream>>>(vx, y);
+}
+
+// IQ3_K: 110 bytes/256w, 3-bit dual-codebook with signed scales
+// Block: half d, uint16 extra, uint16 scales_h, uint8 scales_l[8],
+//        uint8 qs[64], uint8 qh[32]
+__global__ void dequantize_block_iq3_k(const void* __restrict__ vx,
+                                        dst_t* __restrict__ yy) {
+    const int i = blockIdx.x;
+    const block_iq3_k* __restrict__ x = (const block_iq3_k*)vx;
+    const int tid = threadIdx.x;
+    const int ib32 = tid;  // 0..7
+
+    if (ib32 >= QK_K / 32) return;
+
+    const float d = __half2float(x[i].d);
+    uint16_t sh = x[i].scales_h;
+    uint16_t extra = x[i].extra;
+    const uint8_t* qs = x[i].qs;
+    const uint8_t* qh = x[i].qh;
+    const uint8_t* scales_l = x[i].scales_l;
+
+    // Scale: 2*(nibble)+1 with sign from scales_h
+    // scales_h provides 2 sign bits per ib32
+    uint16_t sh_local = sh >> (2 * ib32);
+    float dl1 = d * ((2 * (scales_l[ib32] & 0xf) + 1) * ((sh_local & 1) ? -1 : 1));
+    float dl2 = d * ((2 * (scales_l[ib32] >> 4) + 1) * ((sh_local & 2) ? -1 : 1));
+
+    // Codebook selection via extra bits
+    uint16_t extra_shifted = extra >> (2 * ib32);
+    const int8_t* values1 = (extra_shifted & 1) ? kvalues_iq3nl + 8 : kvalues_iq3nl;
+    const int8_t* values2 = (extra_shifted & 2) ? kvalues_iq3nl + 8 : kvalues_iq3nl;
+
+    // 3-bit code: low 2 bits from qs, high bit from qh
+    int shift_l = 2 * (ib32 % 4);
+    int shift_h = ib32 % 8;
+    const uint8_t* qs_base = qs + (ib32 / 4) * 32;
+
+    dst_t* y = yy + i * QK_K + ib32 * 32;
+
+    for (int j = 0; j < 16; ++j) {
+        int code1 = ((qs_base[j + 0]  >> shift_l) & 3) | (((qh[j + 0]  >> shift_h) & 1) << 2);
+        int code2 = ((qs_base[j + 16] >> shift_l) & 3) | (((qh[j + 16] >> shift_h) & 1) << 2);
+        y[j + 0]  = dl1 * values1[code1];
+        y[j + 16] = dl2 * values2[code2];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq3_k_cuda(const void* vx, dst_t* y,
+                                       const int64_t k, cudaStream_t stream) {
+    const int nb = (k + QK_K - 1) / QK_K;
+    dequantize_block_iq3_k<<<nb, 32, 0, stream>>>(vx, y);
+}
+
+// IQ4_K: 150 bytes/256w, 4-bit dual-codebook with 6-bit signed scales
+// Block: half d, uint16 extra, uint8 scales_h[4], uint8 scales_l[8],
+//        uint8 qs[128]
+__global__ void dequantize_block_iq4_k(const void* __restrict__ vx,
+                                        dst_t* __restrict__ yy) {
+    const int i = blockIdx.x;
+    const block_iq4_k* __restrict__ x = (const block_iq4_k*)vx;
+    const int tid = threadIdx.x;
+    const int ib32 = tid;  // 0..7
+
+    if (ib32 >= QK_K / 32) return;
+
+    const float d = __half2float(x[i].d);
+    uint16_t extra = x[i].extra;
+    const uint8_t* qs = x[i].qs;
+
+    // 6-bit scale from scales_h and scales_l
+    uint8_t sh = x[i].scales_h[ib32 / 2] >> (4 * (ib32 % 2));
+    float dl1 = d * (((x[i].scales_l[ib32] & 0xf) | ((sh << 4) & 0x30)) - 32);
+    float dl2 = d * (((x[i].scales_l[ib32] >> 4) | ((sh << 2) & 0x30)) - 32);
+
+    // Codebook selection via extra bits
+    uint16_t extra_shifted = extra >> (2 * ib32);
+    const int8_t* values1 = (extra_shifted & 1) ? kvalues_iq4k + 16 : kvalues_iq4k;
+    const int8_t* values2 = (extra_shifted & 2) ? kvalues_iq4k + 16 : kvalues_iq4k;
+
+    const uint8_t* qs_base = qs + ib32 * 16;
+    dst_t* y = yy + i * QK_K + ib32 * 32;
+
+    for (int j = 0; j < 16; ++j) {
+        y[j + 0]  = dl1 * values1[qs_base[j] & 0xf];
+        y[j + 16] = dl2 * values2[qs_base[j] >> 4];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq4_k_cuda(const void* vx, dst_t* y,
+                                       const int64_t k, cudaStream_t stream) {
+    const int nb = (k + QK_K - 1) / QK_K;
+    dequantize_block_iq4_k<<<nb, 32, 0, stream>>>(vx, y);
+}
+
+// IQ4_KS: 144 bytes/256w + 4-byte row-prefix FP32 scale
+// Simplest format: single codebook offset, byte scale per 32-weight group
+// Block struct (after FP32 prefix): uint8 scales[8], uint8 qs[128]
+// Note: the FP32 prefix is per-ROW, not per-super-block. The block_iq4_ks
+// array starts at (float*)x + 1.
+__global__ void dequantize_block_iq4_ks(const void* __restrict__ vx,
+                                         dst_t* __restrict__ yy,
+                                         int64_t k) {
+    // The row data starts with a float d prefix before the block array
+    const float* dptr = (const float*)vx;
+    const float d = *dptr;
+    const block_iq4_ks* __restrict__ x = (const block_iq4_ks*)(dptr + 1);
+
+    const int nblock = k / QK_K;
+    const int i = blockIdx.x;
+    const int ib32 = threadIdx.x;  // 0..7
+
+    if (i >= nblock || ib32 >= QK_K / 32) return;
+
+    const uint8_t* qs = x[i].qs + ib32 * 16;
+    uint8_t scale_byte = x[i].scales[ib32];
+    float dl = d * ((int)(scale_byte & 254) - 127);
+    const int8_t* values = kvalues_iq4k + ((scale_byte & 1) << 4);
+
+    dst_t* y = yy + i * QK_K + ib32 * 32;
+
+    for (int j = 0; j < 16; ++j) {
+        y[j + 0]  = dl * values[qs[j] & 0xf];
+        y[j + 16] = dl * values[qs[j] >> 4];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq4_ks_cuda(const void* vx, dst_t* y,
+                                        const int64_t k, cudaStream_t stream) {
+    const int nb = (k + QK_K - 1) / QK_K;
+    dequantize_block_iq4_ks<<<nb, 32, 0, stream>>>(vx, y, k);
+}
+
 template<typename dst_t>
 static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
     switch (type) {
@@ -913,6 +1116,14 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_rocmfpx_q6_0_cuda;
         case GGML_TYPE_Q8_0_ROCMFPX:
             return dequantize_row_rocmfpx_q8_0_cuda;
+        case GGML_TYPE_IQ2_K:
+            return dequantize_row_iq2_k_cuda;
+        case GGML_TYPE_IQ3_K:
+            return dequantize_row_iq3_k_cuda;
+        case GGML_TYPE_IQ4_K:
+            return dequantize_row_iq4_k_cuda;
+        case GGML_TYPE_IQ4_KS:
+            return dequantize_row_iq4_ks_cuda;
         default:
             return nullptr;
     }

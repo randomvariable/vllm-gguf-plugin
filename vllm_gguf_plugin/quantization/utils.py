@@ -90,3 +90,18 @@ ROCMFPX_TYPES = {
     GGML_TYPE_Q8_0_ROCMFPX,
 }
 DEQUANT_TYPES = DEQUANT_TYPES | ROCMFPX_TYPES
+
+# ik_llama.cpp K-variant i-quant types
+from ..ik_types import (  # noqa: E402
+    GGML_TYPE_IQ2_K,
+    GGML_TYPE_IQ3_K,
+    GGML_TYPE_IQ4_K,
+    GGML_TYPE_IQ4_KS,
+)
+IK_IQK_TYPES = {
+    GGML_TYPE_IQ2_K,
+    GGML_TYPE_IQ3_K,
+    GGML_TYPE_IQ4_K,
+    GGML_TYPE_IQ4_KS,
+}
+DEQUANT_TYPES = DEQUANT_TYPES | IK_IQK_TYPES
