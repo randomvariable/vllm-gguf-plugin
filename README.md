@@ -1,81 +1,73 @@
-# vLLM GGUF Quantization Plugin
+# vLLM GGUF Plugin — Homelabs Edition
 
-This plugin provides out-of-tree GGUF quantization support for vLLM after
-in-tree support deprecation
-([vllm-project/vllm#39583](https://github.com/vllm-project/vllm/issues/39583)).
+A fork of the
+[vLLM GGUF quantization plugin](https://github.com/vllm-project/vllm-gguf-plugin)
+that extends GGUF coverage so you can serve **any GGUF model that llama.cpp,
+ik_llama.cpp, or ROCmFPX can** — straight from vLLM. The goal is to let a
+homelab retire its llama.cpp instances and serve everything from one stack.
+
+The default branch **`homelabs-main`** carries the extended quant support; the
+upstream plugin documentation is preserved at [`UPSTREAM.md`](UPSTREAM.md).
+
+## Why This Fork
+
+The upstream plugin supports the standard llama.cpp quant types. This fork adds
+the formats that are popular in the community but missing upstream, all of which
+dequantize in pure software (lookup-table + integer arithmetic) and therefore
+run on consumer GPUs without FP8/FP4 tensor cores:
+
+| Target | GPU | Notes |
+|---|---|---|
+| **AMD Strix Halo** | Radeon 8060S, `gfx1151` / RDNA3.5 | No FP8/FP4 tensor cores — software-dequant formats are the path to large models in 96 GB UMA |
+| **NVIDIA DGX Spark** | Grace Blackwell, `sm_121a` | Software-dequant formats plus FP4/FP8 tensor-core types |
+
+## Quantization Coverage
+
+**Supported by the upstream plugin** (unchanged): `Q4_0`–`Q8_1`, `Q2_K`–`Q6_K`,
+and the i-quants `IQ1_S`–`IQ4_XS`.
+
+**Added on `homelabs-main`:**
+
+- **ROCmFPX family** — Strix-Halo-optimised codebook formats, all six model-weight
+  types: `Q4_0_ROCMFP4`, `Q4_0_ROCMFP4_FAST`, `Q2_0_ROCMFPX` (the format used by
+  Hy3-iFP2 models), `Q3_0_ROCMFPX`, `Q6_0_ROCMFPX`, `Q8_0_ROCMFPX`.
+- **ik_llama.cpp i-quants** *(in progress)* — the SOTA low-bit K-variant i-quants
+  (`IQ4_KS`, `IQ4_K`, `IQ2_K`, `IQ3_K` first, then the wider `IQ*_K`/`KS`/`KT`
+  family), which unlock the most community-quantized models.
+
+**Planned:** the remaining ik_llama formats, the llama.cpp upstream gap
+(`TQ1_0`/`TQ2_0` ternary, `Q1_0`/`Q2_0`), and the DGX Spark tensor-core types
+(`MXFP4`/`NVFP4`).
 
 ## Installation
 
-### Prerequisites
-
-- CUDA toolkit or ROCm toolkit
-
-We recommend [uv](https://docs.astral.sh/uv/) for package management. If you
-don't have it installed:
+The plugin is baked into the homelab vLLM runtime images
+(`vllm-strix-runtime` / `vllm-spark-runtime`), so GGUF serving works out of the
+box there. To install standalone:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/randomvariable/vllm-gguf-plugin
+cd vllm-gguf-plugin
+git checkout homelabs-main
+uv pip install -e . --torch-backend=auto
 ```
-
-### From Source
-
-1. Clone this repository:
-
-   ```bash
-   git clone https://github.com/vllm-project/vllm-gguf-plugin
-   cd vllm-gguf-plugin
-   ```
-
-2. Install the plugin in development mode:
-
-   ```bash
-   uv pip install -e . --torch-backend=auto
-   ```
-
-Or install directly:
-
-```bash
-uv pip install . --torch-backend=auto
-```
-
-## Development
-
-```bash
-uv pip install -e .[dev] --torch-backend=auto
-pre-commit install
-pre-commit run --all-files
-```
-
-The same hooks also run in GitHub Actions on every push and pull request.
 
 ## Usage
 
+Serve a GGUF model — the plugin registers its quant types with vLLM at import:
+
 ```bash
-vllm serve Qwen/Qwen3-0.6B-GGUF:Q8_0 --tokenizer Qwen/Qwen3-0.6B
+vllm serve <repo>/<model>-GGUF:Q4_0_ROCMFP4 --tokenizer <repo>/<model>
 ```
 
-## Tested model coverage
+## For Contributors
 
-The plugin uses vLLM's model implementations and a generic GGUF weight
-adapter, so model compatibility is broader than a fixed allowlist. The models
-below are covered by the repository's generation tests and are the best-known
-starting points:
+`homelabs-main` is the consolidated branch; per-format work lands on feature
+branches (e.g. `rocmfpx-q4_0`, `ik-iqk`) and merges in once reviewed. Each new
+quant type adds a block struct, a dequant kernel, a dispatch case, and a
+type-registration entry — see the ROCmFPX commits for the pattern. Upstream
+development workflow is documented in [`UPSTREAM.md`](UPSTREAM.md).
 
-| Modality | Model family | Tested GGUF quantization |
-| --- | --- | --- |
-| Text | Qwen 2.5 | Q6_K |
-| Text | Qwen 3 | Q8_0 |
-| Text | Phi 3.5 | IQ4_XS |
-| Text | GPT-2 | Q4_K_M |
-| Text | StableLM | Q4_K_M |
-| Text | Gemma 3 | Q4_0 |
-| Text | OLMoE | Q4_0 |
-| Vision-language | Gemma 3 | Q4_0 backbone with F16 projector |
-| Image generation | Z-Image-Turbo | Q4_0 |
-| Image generation | FLUX.2-klein | Q8_0 |
+## License
 
-Other vLLM-supported architectures may work when their GGUF tensor names map
-to the corresponding Hugging Face model. A model appearing in vLLM's general
-supported-model list does not by itself guarantee GGUF compatibility. When
-reporting an unsupported model, include the model repository, quantization,
-plugin and vLLM versions, and the complete weight-mapping error.
+Apache 2.0, as upstream.
