@@ -883,7 +883,7 @@ __device__ __constant__ int8_t kvalues_iq4k[32] = {
     -123, -100, -79, -61, -45, -31, -18,  -6, 5, 17, 29, 42, 57, 73, 93, 117,
 };
 
-// IQ2_K: 78 bytes/256w, 2-bit dual-codebook
+// IQ2_K: 76 bytes/256w, 2-bit dual-codebook
 // Block: half d, uint16 extra, uint8 scales[8], uint8 qs[64]
 // Per ib32 (32 weights): nibble scale, dual codebook via extra bits
 __global__ void dequantize_block_iq2_k(const void* __restrict__ vx,
@@ -982,7 +982,7 @@ static void dequantize_row_iq3_k_cuda(const void* vx, dst_t* y,
     dequantize_block_iq3_k<<<nb, 32, 0, stream>>>(vx, y);
 }
 
-// IQ4_K: 150 bytes/256w, 4-bit dual-codebook with 6-bit signed scales
+// IQ4_K: 144 bytes/256w, 4-bit dual-codebook with 6-bit signed scales
 // Block: half d, uint16 extra, uint8 scales_h[4], uint8 scales_l[8],
 //        uint8 qs[128]
 __global__ void dequantize_block_iq4_k(const void* __restrict__ vx,

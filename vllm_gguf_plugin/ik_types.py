@@ -8,9 +8,9 @@ K-variant i-quant formats. These are SOTA low-bit quants used by the
 community (e.g. IQ4_KS is the 35B-in-96GB sweet spot).
 
 Type IDs:
-  137 = GGML_TYPE_IQ2_K  (block_iq2_k,  78 bytes/256 weights, 2.44 bpw)
-  138 = GGML_TYPE_IQ3_K  (block_iq3_k, 110 bytes/256 weights, 3.44 bpw)
-  139 = GGML_TYPE_IQ4_K  (block_iq4_k, 150 bytes/256 weights, 4.69 bpw)
+  137 = GGML_TYPE_IQ2_K  (block_iq2_k,  76 bytes/256 weights, 2.375 bpw)
+   138 = GGML_TYPE_IQ3_K  (block_iq3_k, 110 bytes/256 weights, 3.44 bpw)
+   139 = GGML_TYPE_IQ4_K  (block_iq4_k, 144 bytes/256 weights, 4.5 bpw)
   144 = GGML_TYPE_IQ4_KS (block_iq4_ks, 136 bytes/256 weights, 4.25 bpw)
 
 All use QK_K=256 super-blocks with software dequant and a dual-codebook
@@ -28,13 +28,13 @@ GGML_TYPE_IQ4_KS = 144
 
 # Block layout constants (per 256-weight super-block)
 QK_IQ2_K = 256
-IQ2_K_BLOCK_BYTES = 78  # half(2) + uint16(2) + scales[8] + qs[64] = 76, padded to 78
+IQ2_K_BLOCK_BYTES = 76  # half(2) + uint16(2) + scales[8] + qs[64] = 76
 
 QK_IQ3_K = 256
 IQ3_K_BLOCK_BYTES = 110  # half(2) + uint16(2) + uint16(2) + scales_l[8] + qs[64] + qh[32] = 110
 
 QK_IQ4_K = 256
-IQ4_K_BLOCK_BYTES = 150  # half(2) + uint16(2) + scales_h[4] + scales_l[8] + qs[128] = 144, padded to 150
+IQ4_K_BLOCK_BYTES = 144  # half(2) + uint16(2) + scales_h[4] + scales_l[8] + qs[128] = 144
 
 QK_IQ4_KS = 256
 IQ4_KS_BLOCK_BYTES = 136  # scales[8] + qs[128] = 136 (row-prefix FP32 handled separately)
