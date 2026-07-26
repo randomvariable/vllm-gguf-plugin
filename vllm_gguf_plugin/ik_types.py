@@ -23,6 +23,8 @@ import gguf
 from gguf.quants import GGMLQuantizationType
 
 # ik_llama.cpp K-variant tensor type IDs
+GGML_TYPE_IQ1_BN = 134
+GGML_TYPE_IQ2_BN = 135
 GGML_TYPE_IQ2_K = 137
 GGML_TYPE_IQ3_K = 138
 GGML_TYPE_IQ4_K = 139
@@ -38,6 +40,12 @@ GGML_TYPE_IQ4_KT = 155
 GGML_TYPE_IQ3_KS = 156
 GGML_TYPE_IQ2_KL = 157
 GGML_TYPE_IQ1_KT = 158
+
+# BitNet block layouts (per 64 weights)
+QK_IQ1BN = 64
+IQ1_BN_BLOCK_BYTES = 13
+QK_IQ2BN = 64
+IQ2_BN_BLOCK_BYTES = 16
 
 # Block layout constants (per 256-weight super-block)
 QK_IQ2_K = 256
@@ -96,6 +104,8 @@ def _patch_gguf_enum():
     if all(
         hasattr(GGMLQuantizationType, name)
         for name in (
+            "IQ1_BN",
+            "IQ2_BN",
             "IQ2_K",
             "IQ3_K",
             "IQ4_K",
@@ -118,6 +128,8 @@ def _patch_gguf_enum():
     import enum
 
     existing = {m.name: m.value for m in GGMLQuantizationType}
+    existing["IQ1_BN"] = GGML_TYPE_IQ1_BN
+    existing["IQ2_BN"] = GGML_TYPE_IQ2_BN
     existing["IQ2_K"] = GGML_TYPE_IQ2_K
     existing["IQ3_K"] = GGML_TYPE_IQ3_K
     existing["IQ4_K"] = GGML_TYPE_IQ4_K
@@ -145,6 +157,8 @@ def _patch_gguf_enum():
             if getattr(mod, "GGMLQuantizationType", None) is GGMLQuantizationType:
                 mod.GGMLQuantizationType = new_enum
 
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ1_BN] = (QK_IQ1BN, IQ1_BN_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_BN] = (QK_IQ2BN, IQ2_BN_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_K] = (QK_IQ2_K, IQ2_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ3_K] = (QK_IQ3_K, IQ3_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_K] = (QK_IQ4_K, IQ4_K_BLOCK_BYTES)

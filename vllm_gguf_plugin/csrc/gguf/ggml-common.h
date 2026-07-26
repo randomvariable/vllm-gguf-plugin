@@ -1227,6 +1227,8 @@ typedef struct __attribute__((packed)) {
 
 // ik_llama.cpp K-variant i-quant types
 // Type IDs chosen to not collide with existing GGML enum values
+#define GGML_TYPE_IQ1_BN 134
+#define GGML_TYPE_IQ2_BN 135
 #define GGML_TYPE_IQ2_K  137
 #define GGML_TYPE_IQ3_K  138
 #define GGML_TYPE_IQ4_K  139
@@ -1242,6 +1244,19 @@ typedef struct __attribute__((packed)) {
 #define GGML_TYPE_IQ3_KS 156
 #define GGML_TYPE_IQ2_KL 157
 #define GGML_TYPE_IQ1_KT 158
+
+#define QK_IQ1BN 64
+typedef struct __attribute__((packed)) {
+    uint8_t ql[12];
+    uint8_t extra;
+} block_iq1_bn;
+static_assert(sizeof(block_iq1_bn) == 13, "wrong iq1_bn block size/padding");
+
+#define QK_IQ2BN 64
+typedef struct __attribute__((packed)) {
+    uint8_t qs[QK_IQ2BN/4];
+} block_iq2_bn;
+static_assert(sizeof(block_iq2_bn) == 16, "wrong iq2_bn block size/padding");
 
 #define QK_IQ2_K 256
 typedef struct __attribute__((packed)) {

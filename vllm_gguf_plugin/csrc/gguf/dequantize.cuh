@@ -861,10 +861,55 @@ static void dequantize_row_rocmfpx_q8_0_cuda(const void * vx, dst_t * y,
 }
 
 // =============================================================================
-// ik_llama.cpp K-variant i-quant dequant kernels
+// ik_llama.cpp i-quant dequant kernels
 // Ported from ik_llama.cpp/ggml/src/iqk/iqk_quantize.cpp
-// All use QK_K=256 super-blocks, software-dequant, dual-codebook lookup.
+// BitNet types use arithmetic QK=64 blocks; K variants below use QK_K=256.
 // =============================================================================
+
+__device__ __constant__ uint8_t kvalues_iq1bn_mult[5] = {1, 3, 9, 27, 81};
+
+template<typename dst_t>
+__global__ void dequantize_block_iq1_bn(const void* __restrict__ vx,
+                                         dst_t* __restrict__ yy, int64_t k) {
+    const int block = blockIdx.x;
+    const int pos = threadIdx.x;
+    const int out = block * QK_IQ1BN + pos;
+    if (pos >= QK_IQ1BN || out >= k) return;
+
+    const block_iq1_bn* x = (const block_iq1_bn*)vx;
+    const int i16 = pos / 16;
+    const int lane = pos % 16;
+    const uint8_t q = lane == 15 ? x[block].extra : x[block].ql[3 * i16 + lane / 5];
+    const int digit = lane == 15 ? i16 : lane % 5;
+    const uint8_t v = q * kvalues_iq1bn_mult[digit];
+    yy[out] = ((v + (v >> 1)) >> 7) - 1;
+}
+
+template<typename dst_t>
+static void dequantize_row_iq1_bn_cuda(const void* vx, dst_t* y,
+                                        const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq1_bn<<<(k + QK_IQ1BN - 1) / QK_IQ1BN, QK_IQ1BN, 0, stream>>>(vx, y, k);
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq2_bn(const void* __restrict__ vx,
+                                         dst_t* __restrict__ yy, int64_t k) {
+    const int block = blockIdx.x;
+    const int pos = threadIdx.x;
+    const int out = block * QK_IQ2BN + pos;
+    if (pos >= QK_IQ2BN || out >= k) return;
+
+    const block_iq2_bn* x = (const block_iq2_bn*)vx;
+    const int stream = pos / 16;
+    const int shift = 2 * stream;
+    yy[out] = ((x[block].qs[pos % 16] >> shift) & 3) - 1;
+}
+
+template<typename dst_t>
+static void dequantize_row_iq2_bn_cuda(const void* vx, dst_t* y,
+                                        const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq2_bn<<<(k + QK_IQ2BN - 1) / QK_IQ2BN, QK_IQ2BN, 0, stream>>>(vx, y, k);
+}
 
 // Codebook tables for K-variant i-quant formats
 __device__ __constant__ int8_t kvalues_iq2nl[8] = {
@@ -1571,6 +1616,10 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_rocmfpx_q6_0_cuda;
         case GGML_TYPE_Q8_0_ROCMFPX:
             return dequantize_row_rocmfpx_q8_0_cuda;
+        case GGML_TYPE_IQ1_BN:
+            return dequantize_row_iq1_bn_cuda;
+        case GGML_TYPE_IQ2_BN:
+            return dequantize_row_iq2_bn_cuda;
         case GGML_TYPE_IQ2_K:
             return dequantize_row_iq2_k_cuda;
         case GGML_TYPE_IQ3_K:

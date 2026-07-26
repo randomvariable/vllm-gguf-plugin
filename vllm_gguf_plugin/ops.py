@@ -9,9 +9,11 @@ from .triton.fused_moe.interface import ggml_moe_a8_triton
 from .triton.fused_moe.utils import get_triton_moe_block_m
 from .triton.gemm.interface import ggml_mul_mat_a8_triton
 from .triton.gemm.utils import (
+    GGML_TYPE_IQ1_BN,
     GGML_TYPE_IQ1_KT,
     GGML_TYPE_IQ1_M,
     GGML_TYPE_IQ1_S,
+    GGML_TYPE_IQ2_BN,
     GGML_TYPE_IQ2_K,
     GGML_TYPE_IQ2_KL,
     GGML_TYPE_IQ2_KS,
@@ -97,6 +99,8 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_Q3_0_ROCMFPX,
         GGML_TYPE_Q6_0_ROCMFPX,
         GGML_TYPE_Q8_0_ROCMFPX,
+        GGML_TYPE_IQ1_BN,
+        GGML_TYPE_IQ2_BN,
         GGML_TYPE_IQ2_K,
         GGML_TYPE_IQ3_K,
         GGML_TYPE_IQ4_K,
