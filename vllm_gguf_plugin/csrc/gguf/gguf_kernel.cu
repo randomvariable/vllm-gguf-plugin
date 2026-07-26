@@ -95,7 +95,7 @@ Tensor ggml_dequantize(Tensor W,  // quant weight
 
   VLLM_DISPATCH_FLOATING_TYPES(DW.scalar_type(), "ggml_dequantize", [&] {
     auto to_cuda = ggml_get_to_cuda<scalar_t>(type);
-    to_cuda((void*)W.data_ptr(), (scalar_t*)DW.data_ptr(), m * n, stream);
+    to_cuda((void*)W.data_ptr(), (scalar_t*)DW.data_ptr(), m * n, n, stream);
   });
 
   return DW;

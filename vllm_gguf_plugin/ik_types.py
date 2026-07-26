@@ -44,12 +44,13 @@ GGML_TYPE_IQ3_KS = 156
 GGML_TYPE_IQ2_KL = 157
 GGML_TYPE_IQ1_KT = 158
 
-# BitNet block layouts (per 64 weights)
+# BitNet block layouts. BN sizes include their per-row scale prefix.
 QK_IQ1BN = 64
-IQ1_BN_BLOCK_BYTES = 13
+IQ1_BN_BLOCK_BYTES = 15
 QK_IQ2BN = 64
-IQ2_BN_BLOCK_BYTES = 16
+IQ2_BN_BLOCK_BYTES = 20
 QK_I2S = 128
+# Compatibility size for a 128-weight row; FP32 scale follows all packed row data.
 I2_S_BLOCK_BYTES = 36
 QK_Q1_0_G128 = 128
 Q1_0_G128_BLOCK_BYTES = 18
