@@ -569,6 +569,8 @@ int64_t ggml_moe_get_block_size(int64_t type) {
     case GGML_TYPE_IQ2_KS:
     case GGML_TYPE_IQ3_KS:
     case GGML_TYPE_IQ5_KS:
+    case GGML_TYPE_IQ4_KSS:
+    case GGML_TYPE_IQ2_KL:
       return MOE_X_Q2_K;
   }
   return 0;
