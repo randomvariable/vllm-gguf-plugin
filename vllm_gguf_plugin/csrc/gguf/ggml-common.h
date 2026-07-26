@@ -66,7 +66,30 @@ typedef struct {
 
 #define GGML_TYPE_I2_S 36
 #define GGML_TYPE_Q1_0_G128 41
+#define GGML_TYPE_TQ1_0 34
+#define GGML_TYPE_TQ2_0 35
+#define GGML_TYPE_Q2_0 42
 #define GGML_TYPE_Q6_0 133
+
+typedef struct {
+    uint8_t qs[48];
+    uint8_t qh[4];
+    half d;
+} block_tq1_0;
+static_assert(sizeof(block_tq1_0) == 54, "wrong tq1_0 block size/padding");
+
+typedef struct {
+    uint8_t qs[QK_K/4];
+    half d;
+} block_tq2_0;
+static_assert(sizeof(block_tq2_0) == 66, "wrong tq2_0 block size/padding");
+
+#define QK2_0 64
+typedef struct {
+    half d;
+    uint8_t qs[QK2_0/4];
+} block_q2_0;
+static_assert(sizeof(block_q2_0) == 18, "wrong q2_0 block size/padding");
 
 #define QK_I2S 128
 

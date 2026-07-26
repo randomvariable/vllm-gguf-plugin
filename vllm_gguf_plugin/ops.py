@@ -4,11 +4,13 @@ import os
 
 import torch
 
+from .llama_types import GGML_TYPE_Q2_0, GGML_TYPE_TQ1_0, GGML_TYPE_TQ2_0
 from .triton.dequantize.interface import ggml_dequantize_triton
 from .triton.fused_moe.interface import ggml_moe_a8_triton
 from .triton.fused_moe.utils import get_triton_moe_block_m
 from .triton.gemm.interface import ggml_mul_mat_a8_triton
 from .triton.gemm.utils import (
+    GGML_TYPE_I2_S,
     GGML_TYPE_IQ1_BN,
     GGML_TYPE_IQ1_KT,
     GGML_TYPE_IQ1_M,
@@ -35,7 +37,7 @@ from .triton.gemm.utils import (
     GGML_TYPE_IQ5_K,
     GGML_TYPE_IQ5_KS,
     GGML_TYPE_IQ6_K,
-    GGML_TYPE_I2_S,
+    GGML_TYPE_Q1_0_G128,
     GGML_TYPE_Q2_0_ROCMFPX,
     GGML_TYPE_Q2_K,
     GGML_TYPE_Q3_0_ROCMFPX,
@@ -47,9 +49,8 @@ from .triton.gemm.utils import (
     GGML_TYPE_Q5_0,
     GGML_TYPE_Q5_1,
     GGML_TYPE_Q5_K,
-    GGML_TYPE_Q6_0_ROCMFPX,
-    GGML_TYPE_Q1_0_G128,
     GGML_TYPE_Q6_0,
+    GGML_TYPE_Q6_0_ROCMFPX,
     GGML_TYPE_Q6_K,
     GGML_TYPE_Q8_0,
     GGML_TYPE_Q8_0_ROCMFPX,
@@ -143,6 +144,9 @@ _CUDA_DEQUANT_ONLY_TYPES = frozenset(
         GGML_TYPE_I2_S,
         GGML_TYPE_Q1_0_G128,
         GGML_TYPE_Q6_0,
+        GGML_TYPE_TQ1_0,
+        GGML_TYPE_TQ2_0,
+        GGML_TYPE_Q2_0,
     }
 )
 
