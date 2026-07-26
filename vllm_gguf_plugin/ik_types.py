@@ -11,8 +11,8 @@ Type IDs:
   137 = GGML_TYPE_IQ2_K  (block_iq2_k,  76 bytes/256 weights, 2.375 bpw)
    138 = GGML_TYPE_IQ3_K  (block_iq3_k, 110 bytes/256 weights, 3.44 bpw)
    139 = GGML_TYPE_IQ4_K  (block_iq4_k, 144 bytes/256 weights, 4.5 bpw)
-   140 = GGML_TYPE_IQ5_K  (block_iq5_k, 182 bytes/256 weights, 5.69 bpw)
-   141 = GGML_TYPE_IQ6_K  (block_iq6_k, 214 bytes/256 weights, 6.69 bpw)
+   140 = GGML_TYPE_IQ5_K  (block_iq5_k, 176 bytes/256 weights, 5.5 bpw)
+   141 = GGML_TYPE_IQ6_K  (block_iq6_k, 212 bytes/256 weights, 6.625 bpw)
    144 = GGML_TYPE_IQ4_KS (block_iq4_ks, 136 bytes/256 weights + 4B row-prefix FP32 = 140 on-disk bytes/row, 4.25 bpw)
 
 All use QK_K=256 super-blocks with software dequant and a dual-codebook
@@ -67,10 +67,10 @@ QK_IQ4_K = 256
 IQ4_K_BLOCK_BYTES = 144  # half(2) + uint16(2) + scales_h[4] + scales_l[8] + qs[128] = 144
 
 QK_IQ5_K = 256
-IQ5_K_BLOCK_BYTES = 182
+IQ5_K_BLOCK_BYTES = 176
 
 QK_IQ6_K = 256
-IQ6_K_BLOCK_BYTES = 214
+IQ6_K_BLOCK_BYTES = 212
 
 QK_IQ4_KS = 256
 # Effective on-disk row stride: 4-byte FP32 prefix + 136-byte block = 140.
@@ -110,56 +110,50 @@ IQ4_KT_BLOCK_BYTES = 132
 
 def _patch_gguf_enum():
     """Add ik K-variant types to the gguf GGMLQuantizationType enum."""
-    if all(
-        hasattr(GGMLQuantizationType, name)
-        for name in (
-            "IQ1_BN",
-            "IQ2_BN",
-            "I2_S",
-            "Q1_0_G128",
-            "Q6_0",
-            "IQ2_K",
-            "IQ3_K",
-            "IQ4_K",
-            "IQ5_K",
-            "IQ6_K",
-            "IQ4_KS",
-            "IQ2_KS",
-            "IQ3_KS",
-            "IQ5_KS",
-            "IQ4_KSS",
-            "IQ2_KL",
-            "IQ1_KT",
-            "IQ2_KT",
-            "IQ3_KT",
-            "IQ4_KT",
+    import enum
+
+    ik_types = (
+        ("IQ1_BN", GGML_TYPE_IQ1_BN),
+        ("IQ2_BN", GGML_TYPE_IQ2_BN),
+        ("I2_S", GGML_TYPE_I2_S),
+        ("Q1_0_G128", GGML_TYPE_Q1_0_G128),
+        ("Q6_0", GGML_TYPE_Q6_0),
+        ("IQ2_K", GGML_TYPE_IQ2_K),
+        ("IQ3_K", GGML_TYPE_IQ3_K),
+        ("IQ4_K", GGML_TYPE_IQ4_K),
+        ("IQ5_K", GGML_TYPE_IQ5_K),
+        ("IQ6_K", GGML_TYPE_IQ6_K),
+        ("IQ4_KS", GGML_TYPE_IQ4_KS),
+        ("IQ2_KS", GGML_TYPE_IQ2_KS),
+        ("IQ3_KS", GGML_TYPE_IQ3_KS),
+        ("IQ5_KS", GGML_TYPE_IQ5_KS),
+        ("IQ4_KSS", GGML_TYPE_IQ4_KSS),
+        ("IQ2_KL", GGML_TYPE_IQ2_KL),
+        ("IQ1_KT", GGML_TYPE_IQ1_KT),
+        ("IQ2_KT", GGML_TYPE_IQ2_KT),
+        ("IQ3_KT", GGML_TYPE_IQ3_KT),
+        ("IQ4_KT", GGML_TYPE_IQ4_KT),
+    )
+    for name, value in ik_types:
+        existing_member = next(
+            (m for m in GGMLQuantizationType if m.value == value and m.name != name),
+            None,
         )
+        if existing_member:
+            import warnings
+
+            warnings.warn(
+                f"ik_types: type ID {value} already registered as "
+                f"{existing_member.name}, overriding with {name}"
+            )
+
+    if all(
+        hasattr(GGMLQuantizationType, name) for name, _ in ik_types
     ):
         return
 
-    import enum
-
     existing = {m.name: m.value for m in GGMLQuantizationType}
-    existing["IQ1_BN"] = GGML_TYPE_IQ1_BN
-    existing["IQ2_BN"] = GGML_TYPE_IQ2_BN
-    existing["I2_S"] = GGML_TYPE_I2_S
-    existing["Q1_0_G128"] = GGML_TYPE_Q1_0_G128
-    existing["Q6_0"] = GGML_TYPE_Q6_0
-    existing["IQ2_K"] = GGML_TYPE_IQ2_K
-    existing["IQ3_K"] = GGML_TYPE_IQ3_K
-    existing["IQ4_K"] = GGML_TYPE_IQ4_K
-    existing["IQ5_K"] = GGML_TYPE_IQ5_K
-    existing["IQ6_K"] = GGML_TYPE_IQ6_K
-    existing["IQ4_KS"] = GGML_TYPE_IQ4_KS
-    existing["IQ2_KS"] = GGML_TYPE_IQ2_KS
-    existing["IQ3_KS"] = GGML_TYPE_IQ3_KS
-    existing["IQ5_KS"] = GGML_TYPE_IQ5_KS
-    existing["IQ4_KSS"] = GGML_TYPE_IQ4_KSS
-    existing["IQ2_KL"] = GGML_TYPE_IQ2_KL
-    existing["IQ1_KT"] = GGML_TYPE_IQ1_KT
-    existing["IQ2_KT"] = GGML_TYPE_IQ2_KT
-    existing["IQ3_KT"] = GGML_TYPE_IQ3_KT
-    existing["IQ4_KT"] = GGML_TYPE_IQ4_KT
+    existing.update(ik_types)
 
     new_enum = enum.IntEnum("GGMLQuantizationType", existing)
 

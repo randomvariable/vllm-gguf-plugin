@@ -1334,7 +1334,7 @@ typedef struct {
     uint8_t  qs[QK_IQ5_K/2];
     uint8_t  qh[QK_IQ5_K/8];
 } block_iq5_k;
-static_assert(sizeof(block_iq5_k) == 182, "wrong iq5_k block size/padding");
+static_assert(sizeof(block_iq5_k) == 176, "wrong iq5_k block size/padding");
 
 #define QK_IQ6_K 256
 typedef struct {
@@ -1344,7 +1344,7 @@ typedef struct {
     uint8_t  qs[QK_IQ6_K/2];
     uint8_t  qh[QK_IQ6_K/4];
 } block_iq6_k;
-static_assert(sizeof(block_iq6_k) == 214, "wrong iq6_k block size/padding");
+static_assert(sizeof(block_iq6_k) == 212, "wrong iq6_k block size/padding");
 
 // These KS formats store their scale as a per-row prefix, outside the block.
 #define QK_IQ2_KS 256

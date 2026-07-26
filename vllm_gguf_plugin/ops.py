@@ -102,8 +102,6 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_Q3_0_ROCMFPX,
         GGML_TYPE_Q6_0_ROCMFPX,
         GGML_TYPE_Q8_0_ROCMFPX,
-        GGML_TYPE_IQ1_BN,
-        GGML_TYPE_IQ2_BN,
         GGML_TYPE_IQ2_K,
         GGML_TYPE_IQ3_K,
         GGML_TYPE_IQ4_K,
@@ -139,7 +137,13 @@ _CUDA_GEMM_QUANT_TYPES = frozenset(
     }
 )
 _CUDA_DEQUANT_ONLY_TYPES = frozenset(
-    {GGML_TYPE_I2_S, GGML_TYPE_Q1_0_G128, GGML_TYPE_Q6_0}
+    {
+        GGML_TYPE_IQ1_BN,
+        GGML_TYPE_IQ2_BN,
+        GGML_TYPE_I2_S,
+        GGML_TYPE_Q1_0_G128,
+        GGML_TYPE_Q6_0,
+    }
 )
 
 
@@ -153,7 +157,7 @@ def _cuda_kernel_available(op_name: str, quant_type: int | None = None) -> bool:
         return True
     quant_type = int(quant_type)
     if op_name == "ggml_dequantize":
-        return quant_type in _CUDA_GEMV_QUANT_TYPES
+        return quant_type in _CUDA_GEMV_QUANT_TYPES | _CUDA_DEQUANT_ONLY_TYPES
     return quant_type in _CUDA_GEMV_QUANT_TYPES - _CUDA_DEQUANT_ONLY_TYPES
 
 
