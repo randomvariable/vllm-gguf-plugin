@@ -1233,6 +1233,9 @@ typedef struct __attribute__((packed)) {
 #define GGML_TYPE_IQ5_K  140
 #define GGML_TYPE_IQ6_K  141
 #define GGML_TYPE_IQ4_KS 144
+#define GGML_TYPE_IQ2_KS 145
+#define GGML_TYPE_IQ5_KS 152
+#define GGML_TYPE_IQ3_KS 156
 
 #define QK_IQ2_K 256
 typedef struct __attribute__((packed)) {
@@ -1294,3 +1297,29 @@ typedef struct {
     uint8_t  qh[QK_IQ6_K/4];
 } block_iq6_k;
 static_assert(sizeof(block_iq6_k) == 214, "wrong iq6_k block size/padding");
+
+// These KS formats store their scale as a per-row prefix, outside the block.
+#define QK_IQ2_KS 256
+typedef struct __attribute__((packed)) {
+    uint16_t extra;
+    uint8_t  scales[QK_IQ2_KS/64];
+    uint8_t  qs[QK_IQ2_KS/4];
+} block_iq2_ks;
+static_assert(sizeof(block_iq2_ks) == 70, "wrong iq2_ks block size/padding");
+
+#define QK_IQ3_KS 256
+typedef struct __attribute__((packed)) {
+    uint16_t extra;
+    uint8_t  scales[QK_IQ3_KS/64];
+    uint8_t  qs[QK_IQ3_KS/4];
+    uint8_t  qh[QK_IQ3_KS/8];
+} block_iq3_ks;
+static_assert(sizeof(block_iq3_ks) == 102, "wrong iq3_ks block size/padding");
+
+#define QK_IQ5_KS 256
+typedef struct __attribute__((packed)) {
+    uint8_t scales[QK_IQ5_KS/32];
+    uint8_t qs[QK_IQ5_KS/2];
+    uint8_t qh[QK_IQ5_KS/8];
+} block_iq5_ks;
+static_assert(sizeof(block_iq5_ks) == 168, "wrong iq5_ks block size/padding");

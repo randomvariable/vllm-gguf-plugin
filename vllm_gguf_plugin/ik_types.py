@@ -29,6 +29,9 @@ GGML_TYPE_IQ4_K = 139
 GGML_TYPE_IQ5_K = 140
 GGML_TYPE_IQ6_K = 141
 GGML_TYPE_IQ4_KS = 144
+GGML_TYPE_IQ2_KS = 145
+GGML_TYPE_IQ5_KS = 152
+GGML_TYPE_IQ3_KS = 156
 
 # Block layout constants (per 256-weight super-block)
 QK_IQ2_K = 256
@@ -54,10 +57,32 @@ QK_IQ4_KS = 256
 # the actual on-disk layout including the prefix.
 IQ4_KS_BLOCK_BYTES = 140  # sizeof(float) + sizeof(block_iq4_ks) = 4 + 136
 
+QK_IQ2_KS = 256
+IQ2_KS_BLOCK_BYTES = 72  # half row prefix + 70-byte block
+
+QK_IQ3_KS = 256
+IQ3_KS_BLOCK_BYTES = 104  # half row prefix + 102-byte block
+
+QK_IQ5_KS = 256
+IQ5_KS_BLOCK_BYTES = 172  # float row prefix + 168-byte block
+
 
 def _patch_gguf_enum():
     """Add ik K-variant types to the gguf GGMLQuantizationType enum."""
-    if hasattr(GGMLQuantizationType, "IQ2_K"):
+    if all(
+        hasattr(GGMLQuantizationType, name)
+        for name in (
+            "IQ2_K",
+            "IQ3_K",
+            "IQ4_K",
+            "IQ5_K",
+            "IQ6_K",
+            "IQ4_KS",
+            "IQ2_KS",
+            "IQ3_KS",
+            "IQ5_KS",
+        )
+    ):
         return
 
     import enum
@@ -69,6 +94,9 @@ def _patch_gguf_enum():
     existing["IQ5_K"] = GGML_TYPE_IQ5_K
     existing["IQ6_K"] = GGML_TYPE_IQ6_K
     existing["IQ4_KS"] = GGML_TYPE_IQ4_KS
+    existing["IQ2_KS"] = GGML_TYPE_IQ2_KS
+    existing["IQ3_KS"] = GGML_TYPE_IQ3_KS
+    existing["IQ5_KS"] = GGML_TYPE_IQ5_KS
 
     new_enum = enum.IntEnum("GGMLQuantizationType", existing)
 
@@ -87,6 +115,9 @@ def _patch_gguf_enum():
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ5_K] = (QK_IQ5_K, IQ5_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ6_K] = (QK_IQ6_K, IQ6_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_KS] = (QK_IQ4_KS, IQ4_KS_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_KS] = (QK_IQ2_KS, IQ2_KS_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ3_KS] = (QK_IQ3_KS, IQ3_KS_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ5_KS] = (QK_IQ5_KS, IQ5_KS_BLOCK_BYTES)
 
 
 _patch_gguf_enum()
