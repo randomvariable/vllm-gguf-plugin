@@ -1360,6 +1360,164 @@ static void dequantize_row_iq2_kl_cuda(const void* vx, dst_t* y, const int64_t k
     dequantize_block_iq2_kl<<<k / QK_IQ2_KL, 32, 0, stream>>>(vx, y, k);
 }
 
+__device__ void kt_set_values_int(uint16_t idx, float* result, float scale, int group_size) {
+    uint32_t x = (uint32_t)idx + 4096;
+    constexpr uint32_t ka = 0xCBAC1FEDu;
+    for (int k = 0; k < group_size; ++k) {
+        x = ka * x;
+        uint32_t s = x & 0x3f3f3f3fu;
+        const int8_t* i8 = (const int8_t*)&s;
+        float val = (float)(i8[0] + i8[1] + i8[2] + i8[3]) - 126.0f;
+        result[k] = scale * fabsf(val);
+    }
+}
+
+__device__ void kt_set_values_fp16(uint16_t idx, float* result, float scale, int group_size, int offset) {
+    uint32_t x = (uint32_t)idx + offset;
+    constexpr uint32_t ka = 89226354u;
+    constexpr uint32_t kb = 64248484u;
+    constexpr uint32_t kmask = 0x8fff8fffu;
+    constexpr uint32_t km32 = 0x3b603b60u;
+    for (int k = 0; k < group_size; ++k) {
+        x = ka * x + kb;
+        uint32_t s = (x & kmask) ^ km32;
+        half h0 = *(half*)&s;
+        half h1 = *((half*)&s + 1);
+        float val = __half2float(h0) + __half2float(h1);
+        result[k] = scale * fabsf(val);
+    }
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq1_kt(const void* __restrict__ vx, dst_t* __restrict__ yy, int64_t k) {
+    constexpr int ROW_STRIDE = sizeof(float) + sizeof(block_iq1_kt);
+    constexpr int GROUP_SIZE = 8;
+    constexpr int NG = 4;
+    constexpr int NBLOCK = 8;
+    const int i = blockIdx.x;
+    const int group = threadIdx.x;
+    if (i >= k / QK_IQ1_KT || group >= NBLOCK * NG) return;
+
+    const int8_t* row_ptr = (const int8_t*)vx + i * ROW_STRIDE;
+    const float d = *(const float*)row_ptr * 31.75f;
+    const block_iq1_kt* x = (const block_iq1_kt*)(row_ptr + sizeof(float));
+    const int ib = group / NG;
+    const int ig = group % NG;
+    uint16_t idx = x->ql[group] |
+        ((x->qh[(ib % (NBLOCK / 2)) * NG + ig] << (8 - 4 * (ib / (NBLOCK / 2)))) & 0xf00);
+    idx |= (x->sh[ib] << (8 - ig)) & 0x1000;
+    float values[GROUP_SIZE];
+    kt_set_values_fp16(idx, values, d * kvalues_iq4k[x->sh[ib] & 0xf], GROUP_SIZE, 4096);
+    dst_t* y = yy + i * QK_IQ1_KT + group * GROUP_SIZE;
+    for (int j = 0; j < GROUP_SIZE; ++j) y[j] = values[j];
+}
+
+template<typename dst_t>
+static void dequantize_row_iq1_kt_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq1_kt<<<k / QK_IQ1_KT, 32, 0, stream>>>(vx, y, k);
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq2_kt(const void* __restrict__ vx, dst_t* __restrict__ yy, int64_t k) {
+    constexpr int ROW_STRIDE = sizeof(float) + sizeof(block_iq2_kt);
+    constexpr int GROUP_SIZE = 8;
+    constexpr int NG = 4;
+    const int i = blockIdx.x;
+    const int group = threadIdx.x;
+    if (i >= k / QK_IQ2_KT || group >= 16) return;
+
+    const int8_t* row_ptr = (const int8_t*)vx + i * ROW_STRIDE;
+    const float d = *(const float*)row_ptr * 31.75f;
+    const block_iq2_kt* x = (const block_iq2_kt*)(row_ptr + sizeof(float));
+    const int ib = group / NG;
+    const uint16_t* ql = (const uint16_t*)x->ql;
+    const uint16_t* qh = ql + 16;
+    float vl[GROUP_SIZE];
+    float vh[GROUP_SIZE];
+    kt_set_values_fp16(ql[group], vl, d * kvalues_iq4k[x->scales[ib] & 0xf], GROUP_SIZE, 4096);
+    kt_set_values_fp16(qh[group], vh, d * kvalues_iq4k[x->scales[ib] >> 4], GROUP_SIZE, 4096);
+    dst_t* yl = yy + i * QK_IQ2_KT + group * GROUP_SIZE;
+    dst_t* yh = yl + QK_IQ2_KT / 2;
+    for (int j = 0; j < GROUP_SIZE; ++j) {
+        yl[j] = vl[j];
+        yh[j] = vh[j];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq2_kt_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq2_kt<<<k / QK_IQ2_KT, 32, 0, stream>>>(vx, y, k);
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq3_kt(const void* __restrict__ vx, dst_t* __restrict__ yy, int64_t k) {
+    constexpr int ROW_STRIDE = sizeof(float) + sizeof(block_iq3_kt);
+    constexpr int GROUP_SIZE = 8;
+    constexpr int NG = 4;
+    const int i = blockIdx.x;
+    const int group = threadIdx.x;
+    if (i >= k / QK_IQ3_KT || group >= 16) return;
+
+    const int8_t* row_ptr = (const int8_t*)vx + i * ROW_STRIDE;
+    const float d = *(const float*)row_ptr;
+    const block_iq3_kt* x = (const block_iq3_kt*)(row_ptr + sizeof(float));
+    const int ib = group / NG;
+    const int ig = group % NG;
+    const uint16_t* qll = (const uint16_t*)x->ql;
+    const uint16_t* qlh = qll + 16;
+    float vl[GROUP_SIZE];
+    float vh[GROUP_SIZE];
+    kt_set_values_int(qll[group], vl, d * (x->scales[ib] & 0xf), GROUP_SIZE);
+    kt_set_values_int(qlh[group], vh, d * (x->scales[ib] >> 4), GROUP_SIZE);
+    const uint8_t l_mask = 1 << ib;
+    const uint8_t h_mask = l_mask << 4;
+    dst_t* yl = yy + i * QK_IQ3_KT + group * GROUP_SIZE;
+    dst_t* yh = yl + QK_IQ3_KT / 2;
+    for (int j = 0; j < GROUP_SIZE; ++j) {
+        yl[j] = (x->qh[ig * GROUP_SIZE + j] & l_mask) ? -vl[j] : vl[j];
+        yh[j] = (x->qh[ig * GROUP_SIZE + j] & h_mask) ? -vh[j] : vh[j];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq3_kt_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq3_kt<<<k / QK_IQ3_KT, 32, 0, stream>>>(vx, y, k);
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq4_kt(const void* __restrict__ vx, dst_t* __restrict__ yy, int64_t k) {
+    constexpr int ROW_STRIDE = sizeof(float) + sizeof(block_iq4_kt);
+    constexpr int GROUP_SIZE = 4;
+    constexpr int NG = 8;
+    constexpr int NUM_GROUPS = QK_IQ4_KT / GROUP_SIZE;
+    const int i = blockIdx.x;
+    const int group = threadIdx.x;
+    if (i >= k / QK_IQ4_KT || group >= NUM_GROUPS) return;
+
+    const int8_t* row_ptr = (const int8_t*)vx + i * ROW_STRIDE;
+    const float d = *(const float*)row_ptr * 31.75f;
+    const block_iq4_kt* x = (const block_iq4_kt*)(row_ptr + sizeof(float));
+    const uint32_t* shb = x->qs;
+    const uint8_t* ql = (const uint8_t*)(shb + 8);
+    const uint8_t* qh = ql + NUM_GROUPS;
+    const int ib = group / NG;
+    const int ig = group % NG;
+    const int offset = (shb[ib] & 1) ? 32768 + 4096 : 4096;
+    const float scale = d * ((int)((shb[ib] & 0xff) >> 1) - 64);
+    uint16_t idx = ql[group] |
+        ((qh[group % (NUM_GROUPS / 2)] << (8 - 4 * (group / (NUM_GROUPS / 2)))) & 0xf00) |
+        (((shb[ib] >> (8 + 3 * ig)) & 7) << 12);
+    float values[GROUP_SIZE];
+    kt_set_values_fp16(idx, values, scale, GROUP_SIZE, offset);
+    dst_t* y = yy + i * QK_IQ4_KT + group * GROUP_SIZE;
+    for (int j = 0; j < GROUP_SIZE; ++j) y[j] = values[j];
+}
+
+template<typename dst_t>
+static void dequantize_row_iq4_kt_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq4_kt<<<k / QK_IQ4_KT, 64, 0, stream>>>(vx, y, k);
+}
+
 template<typename dst_t>
 static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
     switch (type) {
@@ -1435,6 +1593,14 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_iq4_kss_cuda;
         case GGML_TYPE_IQ2_KL:
             return dequantize_row_iq2_kl_cuda;
+        case GGML_TYPE_IQ1_KT:
+            return dequantize_row_iq1_kt_cuda;
+        case GGML_TYPE_IQ2_KT:
+            return dequantize_row_iq2_kt_cuda;
+        case GGML_TYPE_IQ3_KT:
+            return dequantize_row_iq3_kt_cuda;
+        case GGML_TYPE_IQ4_KT:
+            return dequantize_row_iq4_kt_cuda;
         default:
             return nullptr;
     }

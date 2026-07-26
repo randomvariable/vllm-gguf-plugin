@@ -32,8 +32,12 @@ GGML_TYPE_IQ4_KS = 144
 GGML_TYPE_IQ2_KS = 145
 GGML_TYPE_IQ4_KSS = 146
 GGML_TYPE_IQ5_KS = 152
+GGML_TYPE_IQ2_KT = 153
+GGML_TYPE_IQ3_KT = 154
+GGML_TYPE_IQ4_KT = 155
 GGML_TYPE_IQ3_KS = 156
 GGML_TYPE_IQ2_KL = 157
+GGML_TYPE_IQ1_KT = 158
 
 # Block layout constants (per 256-weight super-block)
 QK_IQ2_K = 256
@@ -74,6 +78,18 @@ IQ4_KSS_BLOCK_BYTES = 132  # float row prefix + 128-byte block
 QK_IQ2_KL = 256
 IQ2_KL_BLOCK_BYTES = 88  # half row prefix + 86-byte block
 
+QK_IQ1_KT = 256
+IQ1_KT_BLOCK_BYTES = 60
+
+QK_IQ2_KT = 256
+IQ2_KT_BLOCK_BYTES = 72
+
+QK_IQ3_KT = 256
+IQ3_KT_BLOCK_BYTES = 104
+
+QK_IQ4_KT = 256
+IQ4_KT_BLOCK_BYTES = 132
+
 
 def _patch_gguf_enum():
     """Add ik K-variant types to the gguf GGMLQuantizationType enum."""
@@ -91,6 +107,10 @@ def _patch_gguf_enum():
             "IQ5_KS",
             "IQ4_KSS",
             "IQ2_KL",
+            "IQ1_KT",
+            "IQ2_KT",
+            "IQ3_KT",
+            "IQ4_KT",
         )
     ):
         return
@@ -109,6 +129,10 @@ def _patch_gguf_enum():
     existing["IQ5_KS"] = GGML_TYPE_IQ5_KS
     existing["IQ4_KSS"] = GGML_TYPE_IQ4_KSS
     existing["IQ2_KL"] = GGML_TYPE_IQ2_KL
+    existing["IQ1_KT"] = GGML_TYPE_IQ1_KT
+    existing["IQ2_KT"] = GGML_TYPE_IQ2_KT
+    existing["IQ3_KT"] = GGML_TYPE_IQ3_KT
+    existing["IQ4_KT"] = GGML_TYPE_IQ4_KT
 
     new_enum = enum.IntEnum("GGMLQuantizationType", existing)
 
@@ -132,6 +156,10 @@ def _patch_gguf_enum():
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ5_KS] = (QK_IQ5_KS, IQ5_KS_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_KSS] = (QK_IQ4_KSS, IQ4_KSS_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_KL] = (QK_IQ2_KL, IQ2_KL_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ1_KT] = (QK_IQ1_KT, IQ1_KT_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_KT] = (QK_IQ2_KT, IQ2_KT_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ3_KT] = (QK_IQ3_KT, IQ3_KT_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_KT] = (QK_IQ4_KT, IQ4_KT_BLOCK_BYTES)
 
 
 _patch_gguf_enum()

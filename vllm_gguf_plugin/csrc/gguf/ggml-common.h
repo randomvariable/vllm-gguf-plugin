@@ -1236,8 +1236,12 @@ typedef struct __attribute__((packed)) {
 #define GGML_TYPE_IQ2_KS 145
 #define GGML_TYPE_IQ4_KSS 146
 #define GGML_TYPE_IQ5_KS 152
+#define GGML_TYPE_IQ2_KT 153
+#define GGML_TYPE_IQ3_KT 154
+#define GGML_TYPE_IQ4_KT 155
 #define GGML_TYPE_IQ3_KS 156
 #define GGML_TYPE_IQ2_KL 157
+#define GGML_TYPE_IQ1_KT 158
 
 #define QK_IQ2_K 256
 typedef struct __attribute__((packed)) {
@@ -1340,3 +1344,32 @@ typedef struct __attribute__((packed)) {
     uint8_t qh[QK_IQ2_KL/16];
 } block_iq2_kl;
 static_assert(sizeof(block_iq2_kl) == 86, "wrong iq2_kl block size/padding");
+
+#define QK_IQ1_KT 256
+typedef struct __attribute__((packed)) {
+    uint8_t sh[QK_IQ1_KT/32];
+    uint8_t ql[QK_IQ1_KT/8];
+    uint8_t qh[QK_IQ1_KT/16];
+} block_iq1_kt;
+static_assert(sizeof(block_iq1_kt) == 56, "wrong iq1_kt block size/padding");
+
+#define QK_IQ2_KT 256
+typedef struct __attribute__((packed)) {
+    uint8_t scales[QK_IQ2_KT/64];
+    uint8_t ql[QK_IQ2_KT/4];
+} block_iq2_kt;
+static_assert(sizeof(block_iq2_kt) == 68, "wrong iq2_kt block size/padding");
+
+#define QK_IQ3_KT 256
+typedef struct __attribute__((packed)) {
+    uint8_t scales[QK_IQ3_KT/64];
+    uint8_t ql[QK_IQ3_KT/4];
+    uint8_t qh[QK_IQ3_KT/8];
+} block_iq3_kt;
+static_assert(sizeof(block_iq3_kt) == 100, "wrong iq3_kt block size/padding");
+
+#define QK_IQ4_KT 256
+typedef struct __attribute__((packed)) {
+    uint32_t qs[QK_IQ4_KT/8];
+} block_iq4_kt;
+static_assert(sizeof(block_iq4_kt) == 128, "wrong iq4_kt block size/padding");
