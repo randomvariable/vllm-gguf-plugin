@@ -82,6 +82,7 @@ from ..rocmfpx_types import (  # noqa: E402
     GGML_TYPE_Q6_0_ROCMFPX,
     GGML_TYPE_Q8_0_ROCMFPX,
 )
+
 ROCMFPX_TYPES = {
     GGML_TYPE_Q4_0_ROCMFP4,
     GGML_TYPE_Q2_0_ROCMFPX,
@@ -97,11 +98,16 @@ from ..ik_types import (  # noqa: E402
     GGML_TYPE_IQ3_K,
     GGML_TYPE_IQ4_K,
     GGML_TYPE_IQ4_KS,
+    GGML_TYPE_IQ5_K,
+    GGML_TYPE_IQ6_K,
 )
+
 IK_IQK_TYPES = {
     GGML_TYPE_IQ2_K,
     GGML_TYPE_IQ3_K,
     GGML_TYPE_IQ4_K,
     GGML_TYPE_IQ4_KS,
+    GGML_TYPE_IQ5_K,
+    GGML_TYPE_IQ6_K,
 }
 DEQUANT_TYPES = DEQUANT_TYPES | IK_IQK_TYPES

@@ -1230,6 +1230,8 @@ typedef struct __attribute__((packed)) {
 #define GGML_TYPE_IQ2_K  137
 #define GGML_TYPE_IQ3_K  138
 #define GGML_TYPE_IQ4_K  139
+#define GGML_TYPE_IQ5_K  140
+#define GGML_TYPE_IQ6_K  141
 #define GGML_TYPE_IQ4_KS 144
 
 #define QK_IQ2_K 256
@@ -1272,3 +1274,23 @@ typedef struct __attribute__((packed)) {
 } block_iq4_ks;
 static_assert(sizeof(block_iq4_ks) == QK_IQ4_KS/32 + QK_IQ4_KS/2, "wrong iq4_ks block size/padding");
 
+#define QK_IQ5_K 256
+typedef struct {
+    half     d;
+    uint16_t extra;
+    uint8_t  scales_h[QK_IQ5_K/64];
+    uint8_t  scales_l[QK_IQ5_K/32];
+    uint8_t  qs[QK_IQ5_K/2];
+    uint8_t  qh[QK_IQ5_K/8];
+} block_iq5_k;
+static_assert(sizeof(block_iq5_k) == 182, "wrong iq5_k block size/padding");
+
+#define QK_IQ6_K 256
+typedef struct {
+    half     d;
+    uint16_t extra;
+    int8_t   scales[QK_IQ6_K/16];
+    uint8_t  qs[QK_IQ6_K/2];
+    uint8_t  qh[QK_IQ6_K/4];
+} block_iq6_k;
+static_assert(sizeof(block_iq6_k) == 214, "wrong iq6_k block size/padding");

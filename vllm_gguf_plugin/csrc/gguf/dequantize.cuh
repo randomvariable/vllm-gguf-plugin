@@ -1095,6 +1095,84 @@ static void dequantize_row_iq4_ks_cuda(const void* vx, dst_t* y,
     dequantize_block_iq4_ks<<<nb, 32, 0, stream>>>(vx, y, k);
 }
 
+__device__ const int8_t kvalues_iq5nl[64] = {
+    -126, -114, -103, -92, -83, -74, -65, -57, -50, -43, -36, -30, -24, -18, -12, -6, -1, 5, 11, 17, 23, 29, 36, 43, 51, 59, 68, 77, 87, 97, 109, 121,
+    -124, -112, -101, -90, -81, -72, -63, -55, -48, -41, -34, -28, -22, -16, -10, -4, 1, 7, 13, 19, 25, 31, 38, 45, 53, 61, 70, 79, 89, 99, 111, 123,
+};
+
+__device__ const int8_t kvalues_iq6nl[128] = {
+    -127, -121, -115, -109, -104, -98, -93, -88, -84, -79, -74, -70, -66, -62, -58, -54,
+    -51, -47, -44, -40, -37, -34, -31, -28, -25, -22, -19, -16, -13, -11, -8, -5,
+    -2, 0, 3, 6, 9, 12, 14, 17, 20, 23, 27, 30, 33, 36, 40, 44,
+    47, 51, 55, 59, 63, 68, 72, 77, 82, 87, 92, 98, 103, 109, 115, 121,
+    -126, -120, -114, -108, -103, -97, -92, -87, -83, -78, -73, -69, -65, -61, -57, -53,
+    -50, -46, -43, -39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -10, -7, -4,
+    -1, 1, 4, 7, 10, 13, 15, 18, 21, 24, 28, 31, 34, 37, 41, 45,
+    48, 52, 56, 60, 64, 69, 73, 78, 83, 88, 93, 99, 104, 110, 116, 122,
+};
+
+template<typename dst_t>
+__global__ void dequantize_block_iq5_k(const void* __restrict__ vx, dst_t* __restrict__ yy) {
+    const int i = blockIdx.x;
+    const int ib32 = threadIdx.x;
+    if (ib32 >= QK_IQ5_K / 32) return;
+    const block_iq5_k* x = (const block_iq5_k*)vx;
+    const int ib64 = ib32 / 2;
+    const int hi = ib32 & 1;
+    const int shift = 2 * ib64;
+    const uint8_t sh = x[i].scales_h[ib64];
+    const uint8_t sl = x[i].scales_l[2 * ib64 + hi];
+    const float d = __half2float(x[i].d);
+    const float dl1 = d * (((sl & 0xf) | (hi ? ((sh >> 0) & 0x30) : ((sh << 4) & 0x30))) - 32);
+    const float dl2 = d * (((sl >> 4) | (hi ? ((sh >> 2) & 0x30) : ((sh << 2) & 0x30))) - 32);
+    const uint16_t extra = x[i].extra >> (4 * ib64 + 2 * hi);
+    const int8_t* values1 = kvalues_iq5nl + ((extra & 1) << 5);
+    const int8_t* values2 = kvalues_iq5nl + ((extra & 2) << 4);
+    const uint8_t* qs = x[i].qs + 32 * ib64;
+    const uint8_t* qh = x[i].qh;
+    dst_t* y = yy + i * QK_IQ5_K + 32 * ib32;
+    for (int j = 0; j < 16; ++j) {
+        const int q1 = hi ? (qs[j] >> 4) | (((qh[j] >> shift) & 2) << 3) : (qs[j] & 0xf) | (((qh[j] >> shift) & 1) << 4);
+        const int q2 = hi ? (qs[j + 16] >> 4) | (((qh[j + 16] >> shift) & 2) << 3) : (qs[j + 16] & 0xf) | (((qh[j + 16] >> shift) & 1) << 4);
+        y[j] = dl1 * values1[q1];
+        y[j + 16] = dl2 * values2[q2];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq5_k_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq5_k<<<(k + QK_IQ5_K - 1) / QK_IQ5_K, 32, 0, stream>>>(vx, y);
+}
+
+template<typename dst_t>
+__global__ void dequantize_block_iq6_k(const void* __restrict__ vx, dst_t* __restrict__ yy) {
+    const int i = blockIdx.x;
+    const int ib32 = threadIdx.x;
+    if (ib32 >= QK_IQ6_K / 32) return;
+    const block_iq6_k* x = (const block_iq6_k*)vx;
+    const int ib64 = ib32 / 2;
+    const int hi = ib32 & 1;
+    const int shift = 4 * (ib64 & 1);
+    const float d = __half2float(x[i].d);
+    const float dl1 = d * x[i].scales[4 * ib64 + 2 * hi];
+    const float dl2 = d * x[i].scales[4 * ib64 + 2 * hi + 1];
+    const uint16_t extra = x[i].extra >> (4 * ib64 + 2 * hi);
+    const uint8_t* qs = x[i].qs + 32 * ib64;
+    const uint8_t* qh = x[i].qh + 32 * (ib64 / 2);
+    dst_t* y = yy + i * QK_IQ6_K + 32 * ib32;
+    for (int j = 0; j < 16; ++j) {
+        const int q1 = hi ? (qs[j] >> 4) | (((qh[j] >> shift) & 0x0c) << 2) : (qs[j] & 0xf) | (((qh[j] >> shift) & 0x03) << 4);
+        const int q2 = hi ? (qs[j + 16] >> 4) | (((qh[j + 16] >> shift) & 0x0c) << 2) : (qs[j + 16] & 0xf) | (((qh[j + 16] >> shift) & 0x03) << 4);
+        y[j] = dl1 * kvalues_iq6nl[q1 + ((extra & 1) ? 64 : 0)];
+        y[j + 16] = dl2 * kvalues_iq6nl[q2 + ((extra & 2) ? 64 : 0)];
+    }
+}
+
+template<typename dst_t>
+static void dequantize_row_iq6_k_cuda(const void* vx, dst_t* y, const int64_t k, cudaStream_t stream) {
+    dequantize_block_iq6_k<<<(k + QK_IQ6_K - 1) / QK_IQ6_K, 32, 0, stream>>>(vx, y);
+}
+
 template<typename dst_t>
 static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
     switch (type) {
@@ -1156,6 +1234,10 @@ static to_cuda_ggml_t<dst_t> ggml_get_to_cuda(int64_t type) {
             return dequantize_row_iq4_k_cuda;
         case GGML_TYPE_IQ4_KS:
             return dequantize_row_iq4_ks_cuda;
+        case GGML_TYPE_IQ5_K:
+            return dequantize_row_iq5_k_cuda;
+        case GGML_TYPE_IQ6_K:
+            return dequantize_row_iq6_k_cuda;
         default:
             return nullptr;
     }

@@ -11,6 +11,8 @@ Type IDs:
   137 = GGML_TYPE_IQ2_K  (block_iq2_k,  76 bytes/256 weights, 2.375 bpw)
    138 = GGML_TYPE_IQ3_K  (block_iq3_k, 110 bytes/256 weights, 3.44 bpw)
    139 = GGML_TYPE_IQ4_K  (block_iq4_k, 144 bytes/256 weights, 4.5 bpw)
+   140 = GGML_TYPE_IQ5_K  (block_iq5_k, 182 bytes/256 weights, 5.69 bpw)
+   141 = GGML_TYPE_IQ6_K  (block_iq6_k, 214 bytes/256 weights, 6.69 bpw)
    144 = GGML_TYPE_IQ4_KS (block_iq4_ks, 136 bytes/256 weights + 4B row-prefix FP32 = 140 on-disk bytes/row, 4.25 bpw)
 
 All use QK_K=256 super-blocks with software dequant and a dual-codebook
@@ -24,6 +26,8 @@ from gguf.quants import GGMLQuantizationType
 GGML_TYPE_IQ2_K = 137
 GGML_TYPE_IQ3_K = 138
 GGML_TYPE_IQ4_K = 139
+GGML_TYPE_IQ5_K = 140
+GGML_TYPE_IQ6_K = 141
 GGML_TYPE_IQ4_KS = 144
 
 # Block layout constants (per 256-weight super-block)
@@ -35,6 +39,12 @@ IQ3_K_BLOCK_BYTES = 110  # half(2) + uint16(2) + uint16(2) + scales_l[8] + qs[64
 
 QK_IQ4_K = 256
 IQ4_K_BLOCK_BYTES = 144  # half(2) + uint16(2) + scales_h[4] + scales_l[8] + qs[128] = 144
+
+QK_IQ5_K = 256
+IQ5_K_BLOCK_BYTES = 182
+
+QK_IQ6_K = 256
+IQ6_K_BLOCK_BYTES = 214
 
 QK_IQ4_KS = 256
 # Effective on-disk row stride: 4-byte FP32 prefix + 136-byte block = 140.
@@ -56,6 +66,8 @@ def _patch_gguf_enum():
     existing["IQ2_K"] = GGML_TYPE_IQ2_K
     existing["IQ3_K"] = GGML_TYPE_IQ3_K
     existing["IQ4_K"] = GGML_TYPE_IQ4_K
+    existing["IQ5_K"] = GGML_TYPE_IQ5_K
+    existing["IQ6_K"] = GGML_TYPE_IQ6_K
     existing["IQ4_KS"] = GGML_TYPE_IQ4_KS
 
     new_enum = enum.IntEnum("GGMLQuantizationType", existing)
@@ -72,6 +84,8 @@ def _patch_gguf_enum():
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_K] = (QK_IQ2_K, IQ2_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ3_K] = (QK_IQ3_K, IQ3_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_K] = (QK_IQ4_K, IQ4_K_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ5_K] = (QK_IQ5_K, IQ5_K_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ6_K] = (QK_IQ6_K, IQ6_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_KS] = (QK_IQ4_KS, IQ4_KS_BLOCK_BYTES)
 
 
