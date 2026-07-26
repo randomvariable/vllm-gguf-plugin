@@ -25,6 +25,9 @@ from gguf.quants import GGMLQuantizationType
 # ik_llama.cpp K-variant tensor type IDs
 GGML_TYPE_IQ1_BN = 134
 GGML_TYPE_IQ2_BN = 135
+GGML_TYPE_I2_S = 36
+GGML_TYPE_Q1_0_G128 = 41
+GGML_TYPE_Q6_0 = 133
 GGML_TYPE_IQ2_K = 137
 GGML_TYPE_IQ3_K = 138
 GGML_TYPE_IQ4_K = 139
@@ -46,6 +49,12 @@ QK_IQ1BN = 64
 IQ1_BN_BLOCK_BYTES = 13
 QK_IQ2BN = 64
 IQ2_BN_BLOCK_BYTES = 16
+QK_I2S = 128
+I2_S_BLOCK_BYTES = 36
+QK_Q1_0_G128 = 128
+Q1_0_G128_BLOCK_BYTES = 18
+QK_Q6_0 = 32
+Q6_0_BLOCK_BYTES = 26
 
 # Block layout constants (per 256-weight super-block)
 QK_IQ2_K = 256
@@ -106,6 +115,9 @@ def _patch_gguf_enum():
         for name in (
             "IQ1_BN",
             "IQ2_BN",
+            "I2_S",
+            "Q1_0_G128",
+            "Q6_0",
             "IQ2_K",
             "IQ3_K",
             "IQ4_K",
@@ -130,6 +142,9 @@ def _patch_gguf_enum():
     existing = {m.name: m.value for m in GGMLQuantizationType}
     existing["IQ1_BN"] = GGML_TYPE_IQ1_BN
     existing["IQ2_BN"] = GGML_TYPE_IQ2_BN
+    existing["I2_S"] = GGML_TYPE_I2_S
+    existing["Q1_0_G128"] = GGML_TYPE_Q1_0_G128
+    existing["Q6_0"] = GGML_TYPE_Q6_0
     existing["IQ2_K"] = GGML_TYPE_IQ2_K
     existing["IQ3_K"] = GGML_TYPE_IQ3_K
     existing["IQ4_K"] = GGML_TYPE_IQ4_K
@@ -159,6 +174,9 @@ def _patch_gguf_enum():
 
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ1_BN] = (QK_IQ1BN, IQ1_BN_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_BN] = (QK_IQ2BN, IQ2_BN_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_I2_S] = (QK_I2S, I2_S_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_Q1_0_G128] = (QK_Q1_0_G128, Q1_0_G128_BLOCK_BYTES)
+    gguf.GGML_QUANT_SIZES[GGML_TYPE_Q6_0] = (QK_Q6_0, Q6_0_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ2_K] = (QK_IQ2_K, IQ2_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ3_K] = (QK_IQ3_K, IQ3_K_BLOCK_BYTES)
     gguf.GGML_QUANT_SIZES[GGML_TYPE_IQ4_K] = (QK_IQ4_K, IQ4_K_BLOCK_BYTES)

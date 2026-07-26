@@ -64,6 +64,27 @@ typedef struct {
     int8_t  qs[QK8_0];      // quants
 } block_q8_1;
 
+#define GGML_TYPE_I2_S 36
+#define GGML_TYPE_Q1_0_G128 41
+#define GGML_TYPE_Q6_0 133
+
+#define QK_I2S 128
+
+#define QK1_0_G128 128
+typedef struct __attribute__((packed)) {
+    half d;
+    uint8_t qs[QK1_0_G128/8];
+} block_q1_0_g128;
+static_assert(sizeof(block_q1_0_g128) == 18, "wrong q1_0_g128 block size/padding");
+
+#define QK6_0 32
+typedef struct __attribute__((packed)) {
+    half d;
+    uint8_t qh[QK6_0/4];
+    uint8_t qs[QK6_0/2];
+} block_q6_0;
+static_assert(sizeof(block_q6_0) == 26, "wrong q6_0 block size/padding");
+
 #define QR2_K 4
 #define QI2_K (QK_K / (4*QR2_K))
 typedef struct {

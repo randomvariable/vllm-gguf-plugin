@@ -35,6 +35,7 @@ from .triton.gemm.utils import (
     GGML_TYPE_IQ5_K,
     GGML_TYPE_IQ5_KS,
     GGML_TYPE_IQ6_K,
+    GGML_TYPE_I2_S,
     GGML_TYPE_Q2_0_ROCMFPX,
     GGML_TYPE_Q2_K,
     GGML_TYPE_Q3_0_ROCMFPX,
@@ -47,6 +48,8 @@ from .triton.gemm.utils import (
     GGML_TYPE_Q5_1,
     GGML_TYPE_Q5_K,
     GGML_TYPE_Q6_0_ROCMFPX,
+    GGML_TYPE_Q1_0_G128,
+    GGML_TYPE_Q6_0,
     GGML_TYPE_Q6_K,
     GGML_TYPE_Q8_0,
     GGML_TYPE_Q8_0_ROCMFPX,
@@ -116,6 +119,9 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_IQ2_KT,
         GGML_TYPE_IQ3_KT,
         GGML_TYPE_IQ4_KT,
+        GGML_TYPE_I2_S,
+        GGML_TYPE_Q1_0_G128,
+        GGML_TYPE_Q6_0,
     }
 )
 _CUDA_GEMM_QUANT_TYPES = frozenset(
@@ -132,6 +138,9 @@ _CUDA_GEMM_QUANT_TYPES = frozenset(
         GGML_TYPE_Q6_K,
     }
 )
+_CUDA_DEQUANT_ONLY_TYPES = frozenset(
+    {GGML_TYPE_I2_S, GGML_TYPE_Q1_0_G128, GGML_TYPE_Q6_0}
+)
 
 
 def _cuda_kernel_available(op_name: str, quant_type: int | None = None) -> bool:
@@ -142,7 +151,10 @@ def _cuda_kernel_available(op_name: str, quant_type: int | None = None) -> bool:
         return False
     if quant_type is None:
         return True
-    return int(quant_type) in _CUDA_GEMV_QUANT_TYPES
+    quant_type = int(quant_type)
+    if op_name == "ggml_dequantize":
+        return quant_type in _CUDA_GEMV_QUANT_TYPES
+    return quant_type in _CUDA_GEMV_QUANT_TYPES - _CUDA_DEQUANT_ONLY_TYPES
 
 
 def _cuda_gemm_kernel_available(op_name: str, quant_type: int) -> bool:
