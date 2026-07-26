@@ -94,17 +94,7 @@ Tensor ggml_dequantize(Tensor W,  // quant weight
   cudaStream_t stream = get_current_cuda_stream(device_idx);
 
   VLLM_DISPATCH_FLOATING_TYPES(DW.scalar_type(), "ggml_dequantize", [&] {
-    to_cuda_ggml_t<scalar_t> to_cuda;
-    switch (type) {
-      case GGML_TYPE_TQ1_0:
-      case GGML_TYPE_TQ2_0:
-      case GGML_TYPE_Q2_0:
-        to_cuda = ggml_get_to_cuda<scalar_t>(type);
-        break;
-      default:
-        to_cuda = ggml_get_to_cuda<scalar_t>(type);
-        break;
-    }
+    auto to_cuda = ggml_get_to_cuda<scalar_t>(type);
     to_cuda((void*)W.data_ptr(), (scalar_t*)DW.data_ptr(), m * n, n, stream);
   });
 

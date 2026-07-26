@@ -32,6 +32,10 @@ def _patch_gguf_enum() -> None:
         ("Q2_0", GGML_TYPE_Q2_0),
     )
     if all(hasattr(GGMLQuantizationType, name) for name, _ in llama_types):
+        # Native gguf-py already defines these; verify they match CUDA switches.
+        assert GGMLQuantizationType.TQ1_0 == GGML_TYPE_TQ1_0
+        assert GGMLQuantizationType.TQ2_0 == GGML_TYPE_TQ2_0
+        assert GGMLQuantizationType.Q2_0 == GGML_TYPE_Q2_0
         gguf.GGML_QUANT_SIZES.update(GGML_QUANT_SIZES)
         return
 
