@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import gguf
 import torch
 from gguf import GGMLQuantizationType as WeightType
 from vllm.model_executor.layers.linear import (
@@ -12,6 +11,7 @@ from vllm.model_executor.utils import set_weight_attrs
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
+from ..ik_types import gguf_qweight_dequant_shape
 from .params import (
     GGUFUninitializedWeightParameter,
     GGUFUninitializedWeightTypeParameter,
@@ -47,8 +47,9 @@ def _fused_mul_mat_gguf(
     elif qweight_type in MMQ_QUANT_TYPES:
         y = ops.ggml_mul_mat_a8(qweight, x, qweight_type, qweight.shape[0])
     elif qweight_type in DEQUANT_TYPES:
-        block_size, type_size = gguf.GGML_QUANT_SIZES[qweight_type]
-        shape = (qweight.shape[0], qweight.shape[1] // type_size * block_size)
+        shape = gguf_qweight_dequant_shape(
+            qweight.shape[0], qweight.shape[1], qweight_type
+        )
         weight = ops.ggml_dequantize(qweight, qweight_type, *shape, x.dtype)
         y = x @ weight.T
     else:

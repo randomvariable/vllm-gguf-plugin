@@ -44,6 +44,7 @@ from .triton.gemm.utils import (
     GGML_TYPE_Q3_K,
     GGML_TYPE_Q4_0,
     GGML_TYPE_Q4_0_ROCMFP4,
+    GGML_TYPE_Q4_0_ROCMFP4_FAST,
     GGML_TYPE_Q4_1,
     GGML_TYPE_Q4_K,
     GGML_TYPE_Q5_0,
@@ -98,29 +99,6 @@ _CUDA_GEMV_QUANT_TYPES = frozenset(
         GGML_TYPE_IQ2_S,
         GGML_TYPE_IQ4_XS,
         GGML_TYPE_IQ1_M,
-        GGML_TYPE_Q4_0_ROCMFP4,
-        GGML_TYPE_Q2_0_ROCMFPX,
-        GGML_TYPE_Q3_0_ROCMFPX,
-        GGML_TYPE_Q6_0_ROCMFPX,
-        GGML_TYPE_Q8_0_ROCMFPX,
-        GGML_TYPE_IQ2_K,
-        GGML_TYPE_IQ3_K,
-        GGML_TYPE_IQ4_K,
-        GGML_TYPE_IQ4_KS,
-        GGML_TYPE_IQ5_K,
-        GGML_TYPE_IQ6_K,
-        GGML_TYPE_IQ2_KS,
-        GGML_TYPE_IQ3_KS,
-        GGML_TYPE_IQ5_KS,
-        GGML_TYPE_IQ4_KSS,
-        GGML_TYPE_IQ2_KL,
-        GGML_TYPE_IQ1_KT,
-        GGML_TYPE_IQ2_KT,
-        GGML_TYPE_IQ3_KT,
-        GGML_TYPE_IQ4_KT,
-        GGML_TYPE_I2_S,
-        GGML_TYPE_Q1_0_G128,
-        GGML_TYPE_Q6_0,
     }
 )
 _CUDA_GEMM_QUANT_TYPES = frozenset(
@@ -144,6 +122,30 @@ _CUDA_DEQUANT_ONLY_TYPES = frozenset(
         GGML_TYPE_I2_S,
         GGML_TYPE_Q1_0_G128,
         GGML_TYPE_Q6_0,
+        GGML_TYPE_TQ1_0,
+        GGML_TYPE_TQ2_0,
+        GGML_TYPE_Q2_0,
+        GGML_TYPE_IQ2_K,
+        GGML_TYPE_IQ3_K,
+        GGML_TYPE_IQ4_K,
+        GGML_TYPE_IQ5_K,
+        GGML_TYPE_IQ6_K,
+        GGML_TYPE_IQ4_KS,
+        GGML_TYPE_IQ2_KS,
+        GGML_TYPE_IQ3_KS,
+        GGML_TYPE_IQ5_KS,
+        GGML_TYPE_IQ4_KSS,
+        GGML_TYPE_IQ2_KL,
+        GGML_TYPE_IQ1_KT,
+        GGML_TYPE_IQ2_KT,
+        GGML_TYPE_IQ3_KT,
+        GGML_TYPE_IQ4_KT,
+        GGML_TYPE_Q4_0_ROCMFP4,
+        GGML_TYPE_Q4_0_ROCMFP4_FAST,
+        GGML_TYPE_Q2_0_ROCMFPX,
+        GGML_TYPE_Q3_0_ROCMFPX,
+        GGML_TYPE_Q6_0_ROCMFPX,
+        GGML_TYPE_Q8_0_ROCMFPX,
         GGML_TYPE_TQ1_0,
         GGML_TYPE_TQ2_0,
         GGML_TYPE_Q2_0,
@@ -245,7 +247,7 @@ if (
 def ggml_dequantize(
     W: torch.Tensor, quant_type: int, m: int, n: int, dtype: torch.dtype | None
 ) -> torch.Tensor:
-    if _cuda_kernel_available("ggml_dequantize", quant_type):
+    if W.is_cuda and _cuda_kernel_available("ggml_dequantize", quant_type):
         return torch.ops._C_gguf.ggml_dequantize(W, quant_type, m, n, dtype)
     return ggml_dequantize_triton(W, quant_type, m, n, dtype)
 

@@ -3,7 +3,6 @@
 
 from functools import partial
 
-import gguf
 import torch
 from gguf import GGMLQuantizationType as WeightType
 from vllm.model_executor.layers.vocab_parallel_embedding import VocabParallelEmbedding
@@ -11,6 +10,7 @@ from vllm.model_executor.utils import set_weight_attrs
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
+from ..ik_types import gguf_qweight_dequant_shape
 from .linear import GGUFLinearMethod
 from .params import (
     GGUFUninitializedWeightParameter,
@@ -33,9 +33,11 @@ def _apply_gguf_embedding(
     if qweight_type in UNQUANTIZED_TYPES:
         return torch.embedding(qweight, x)
     if qweight_type in DEQUANT_TYPES:
-        block_size, type_size = gguf.GGML_QUANT_SIZES[qweight_type]
+        expected_hidden = gguf_qweight_dequant_shape(
+            1, qweight.shape[1], qweight_type
+        )[1]
         x_flat = x.flatten()
-        assert hidden_size == qweight.shape[1] // type_size * block_size
+        assert hidden_size == expected_hidden
         quant = torch.index_select(qweight, dim=0, index=x_flat)
         dequant = ops.ggml_dequantize(
             quant, qweight_type, hidden_size, x_flat.shape[0], dtype

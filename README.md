@@ -1,10 +1,9 @@
 # vLLM GGUF Plugin — Homelabs Edition
 
-A fork of the
-[vLLM GGUF quantization plugin](https://github.com/vllm-project/vllm-gguf-plugin)
-that extends GGUF coverage so you can serve **any GGUF model that llama.cpp,
-ik_llama.cpp, or ROCmFPX can** — straight from vLLM. The goal is to let a
-homelab retire its llama.cpp instances and serve everything from one stack.
+A fork of the [vLLM GGUF quantization plugin](https://github.com/vllm-project/vllm-gguf-plugin).
+It extends GGUF coverage with standard formats and selected `ik_llama.cpp` and
+ROCmFPX formats. The goal is to serve more models from one stack, while keeping
+format validation status explicit.
 
 The default branch **`homelabs-main`** carries the extended quant support; the
 upstream plugin documentation is preserved at [`UPSTREAM.md`](UPSTREAM.md).
@@ -12,33 +11,30 @@ upstream plugin documentation is preserved at [`UPSTREAM.md`](UPSTREAM.md).
 ## Why This Fork
 
 The upstream plugin supports the standard llama.cpp quant types. This fork adds
-the formats that are popular in the community but missing upstream, all of which
-dequantize in pure software (lookup-table + integer arithmetic) and therefore
-run on consumer GPUs without FP8/FP4 tensor cores:
+the formats that are popular in the community but missing upstream. Software
+fallback dequantization exists for these formats; type 101 also has native
+CUDA/HIP dequantization, but no native GEMV/GEMM/MoE kernels. They therefore run
+on consumer GPUs without FP8/FP4 tensor cores:
 
 | Target | GPU | Notes |
 |---|---|---|
 | **AMD Strix Halo** | Radeon 8060S, `gfx1151` / RDNA3.5 | No FP8/FP4 tensor cores — software-dequant formats are the path to large models in 96 GB UMA |
-| **NVIDIA DGX Spark** | Grace Blackwell, `sm_121a` | Software-dequant formats plus FP4/FP8 tensor-core types |
+| **NVIDIA DGX Spark** | Grace Blackwell, `sm_121a` | Software-dequant formats; `MXFP4`/`NVFP4` support is deferred |
 
 ## Quantization Coverage
 
-**Supported by the upstream plugin** (unchanged): `Q4_0`–`Q8_1`, `Q2_K`–`Q6_K`,
-and the i-quants `IQ1_S`–`IQ4_XS`.
+Upstream plugin formats (unchanged): `Q4_0`–`Q8_1`, `Q2_K`–`Q6_K`.
+| Status | Formats | Evidence and limits |
+|---|---|---|
+| **Verified** | Standard formats: `Q4_0`-`Q8_1`, `Q2_K`-`Q6_K`, `IQ1_S`-`IQ4_XS` | Implemented by upstream plugin and retained here |
+| **Limited** | ROCmFPX: `Q4_0_ROCMFP4`, `Q4_0_ROCMFP4_FAST` (type 101), `Q2_0_ROCMFPX`, `Q3_0_ROCMFPX`, `Q6_0_ROCMFPX`, `Q8_0_ROCMFPX` | Dequantization and materialized dense linear path; type 101 has native CUDA/HIP and software fallback, but no native GEMV/GEMM/MoE |
+| **Limited** | ik_llama K/KS/KT: `IQ*_K`, `IQ*_KS`, `IQ*_KT`; `TQ1_0`, `TQ2_0`, `Q2_0` | Wired and registered, but complete trusted-reference and end-to-end validation is still missing |
+| **Limited** | Type-41 `Q1_0` / `Q1_0_G128` | Accepted as aliases only with geometry `(128, 18)`; incompatible type-41 geometry is rejected; native runtime validation remains pending |
+| **Deferred** | `MXFP4`, `NVFP4` | Not implemented; do not advertise as supported |
 
-**Added on `homelabs-main`:**
-
-- **ROCmFPX family** — Strix-Halo-optimised codebook formats, all six model-weight
-  types: `Q4_0_ROCMFP4`, `Q4_0_ROCMFP4_FAST`, `Q2_0_ROCMFPX` (the format used by
-  Hy3-iFP2 models), `Q3_0_ROCMFPX`, `Q6_0_ROCMFPX`, `Q8_0_ROCMFPX`.
-- **ik_llama.cpp i-quants** *(in progress)* — the SOTA low-bit K-variant i-quants
-  (`IQ4_KS`, `IQ4_K`, `IQ2_K`, `IQ3_K` first, then the wider `IQ*_K`/`KS`/`KT`
-  family), which unlock the most community-quantized models.
-
-**Planned:** the remaining ik_llama formats, the llama.cpp upstream gap
-(`TQ1_0`/`TQ2_0` ternary, `Q1_0`/`Q2_0`), and the DGX Spark tensor-core types
-(`MXFP4`/`NVFP4`).
-
+This table describes repository implementation status, not universal model
+compatibility. A model may still require compatible tensor names, shapes, and
+runtime/backend coverage.
 ## Installation
 
 The plugin is baked into the homelab vLLM runtime images

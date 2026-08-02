@@ -1,6 +1,10 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
+#include <c10/util/Exception.h>
+
+#include <limits>
+
 #include <torch/csrc/inductor/aoti_torch/c/shim.h>
 #include <torch/csrc/stable/accelerator.h>
 #include <torch/csrc/stable/ops.h>
@@ -20,6 +24,10 @@
 using torch::headeronly::ScalarType;
 using torch::stable::Tensor;
 using torch::stable::accelerator::DeviceGuard;
+
+static void fail_unsupported_quant_type(int64_t type) {
+  TORCH_CHECK(false, "Unsupported GGUF quantization type: ", type);
+}
 
 static inline cudaStream_t get_current_cuda_stream(int32_t device_index) {
   void* raw_stream = nullptr;
@@ -87,6 +95,37 @@ static void quantize_row_q8_1_cuda(const scalar_t* x, void* vy, const int kx,
 Tensor ggml_dequantize(Tensor W,  // quant weight
                        int64_t type, int64_t m, int64_t n,
                        std::optional<ScalarType> dtype) {
+  if (type == GGML_TYPE_Q4_0_ROCMFP4_FAST) {
+    TORCH_CHECK(W.scalar_type() == ScalarType::Byte,
+                "GGUF type 101 weight must have uint8 scalar type");
+    TORCH_CHECK(W.is_cuda(), "GGUF type 101 weight must be a CUDA tensor");
+    TORCH_CHECK(W.is_contiguous(),
+                "GGUF type 101 weight must be contiguous");
+    TORCH_CHECK(m > 0 && n > 0,
+                "GGUF type 101 shape must have positive dimensions, got ", m,
+                " x ", n);
+    TORCH_CHECK(n % QK4_0_ROCMFP4 == 0,
+                "GGUF type 101 columns must be divisible by 32, got ", n);
+    TORCH_CHECK(m <= std::numeric_limits<int64_t>::max() / n,
+                "GGUF type 101 output shape overflows element count: ", m,
+                " x ", n);
+
+    const int64_t output_elements = m * n;
+    const int64_t block_count = output_elements / QK4_0_ROCMFP4;
+    TORCH_CHECK(block_count <= std::numeric_limits<int>::max(),
+                "GGUF type 101 has too many blocks for its launcher: ",
+                block_count);
+    TORCH_CHECK(block_count <= std::numeric_limits<int64_t>::max() / 17,
+                "GGUF type 101 input byte count overflows");
+    const int64_t expected_bytes = block_count * 17;
+    TORCH_CHECK(W.numel() <=
+                    std::numeric_limits<int64_t>::max() / W.element_size(),
+                "GGUF type 101 input byte count overflows");
+    TORCH_CHECK(W.numel() * W.element_size() == expected_bytes,
+                "GGUF type 101 weight has ", W.numel() * W.element_size(),
+                " bytes, expected exactly ", expected_bytes);
+  }
+
   const int32_t device_idx = W.get_device_index();
   const DeviceGuard device_guard(device_idx);
   const auto dtype_ = dtype.value_or(ScalarType::Half);
@@ -95,6 +134,9 @@ Tensor ggml_dequantize(Tensor W,  // quant weight
 
   VLLM_DISPATCH_FLOATING_TYPES(DW.scalar_type(), "ggml_dequantize", [&] {
     auto to_cuda = ggml_get_to_cuda<scalar_t>(type);
+    if (to_cuda == nullptr) {
+      fail_unsupported_quant_type(type);
+    }
     to_cuda((void*)W.data_ptr(), (scalar_t*)DW.data_ptr(), m * n, n, stream);
   });
 
@@ -212,6 +254,8 @@ Tensor ggml_mul_mat_vec_a8(Tensor W,  // quant weight
             (void*)W.data_ptr(), (void*)quant_X.data_ptr(),
             (scalar_t*)Y.data_ptr(), col, row, vecs, stream);
         break;
+      default:
+        fail_unsupported_quant_type(type);
     }
   });
   return Y;
@@ -284,6 +328,8 @@ Tensor ggml_mul_mat_a8(Tensor W,  // quant weight
             (void*)W.data_ptr(), (void*)quant_X.data_ptr(),
             (scalar_t*)Y.data_ptr(), col, row, batch, padded, row, stream);
         break;
+      default:
+        fail_unsupported_quant_type(type);
     }
   });
   return Y;
@@ -387,6 +433,8 @@ Tensor ggml_moe_a8(Tensor X,  // input
             (int*)num_tokens_post_padded.data_ptr(), W.stride(0), col, row,
             tokens, padded, row, top_k, sorted_token_ids.sizes()[0], stream);
         break;
+      default:
+        fail_unsupported_quant_type(type);
     }
   });
   return Y;
@@ -524,6 +572,8 @@ Tensor ggml_moe_a8_vec(Tensor X,  // input
             (scalar_t*)Y.data_ptr(), (int*)topk_ids.data_ptr(), top_k, tokens,
             col, row, quant_X.stride(0), stream);
         break;
+      default:
+        fail_unsupported_quant_type(type);
     }
   });
   return Y;
@@ -584,6 +634,7 @@ int64_t ggml_moe_get_block_size(int64_t type) {
     case GGML_TYPE_IQ3_KT:
     case GGML_TYPE_IQ4_KT:
       return MOE_X_Q2_K;
+    default:
+      fail_unsupported_quant_type(type);
   }
-  return 0;
 }

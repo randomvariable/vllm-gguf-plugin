@@ -644,6 +644,7 @@ __constant__ static const int8_t ROCMFP3_CODEBOOK[8] = {
 
 // Global kernel for Q4_0_ROCMFP4 dequantization
 // Each thread handles one GGML block (32 weights from 18 bytes)
+template<typename dst_t>
 __global__ void dequantize_block_rocmfp4_q4_0(const void* __restrict__ vx,
                                                dst_t* __restrict__ y,
                                                int64_t k) {
@@ -683,6 +684,7 @@ static void dequantize_row_rocmfp4_q4_0_cuda(const void * vx, dst_t * y,
 // Fast variant: 1 UE4M3 scale shared across all 32 weights (17 bytes/block)
 // Same Codebook10 as the standard Q4 variant
 // =============================================================================
+template<typename dst_t>
 __global__ void dequantize_block_rocmfp4_fast_q4_0(const void* __restrict__ vx,
                                                     dst_t* __restrict__ y,
                                                     int64_t k) {
@@ -698,9 +700,9 @@ __global__ void dequantize_block_rocmfp4_fast_q4_0(const void* __restrict__ vx,
             uint8_t q = x[i].qs[j];
             int8_t v_lo = ROCMFP4_CODEBOOK10[q & 0x0f];
             int8_t v_hi = ROCMFP4_CODEBOOK10[q >> 4];
-            y[i * QK4_0_ROCMFP4 + j * 2 + 0] =
+            y[i * QK4_0_ROCMFP4 + j] =
                 static_cast<dst_t>(v_lo) * d;
-            y[i * QK4_0_ROCMFP4 + j * 2 + 1] =
+            y[i * QK4_0_ROCMFP4 + j + 16] =
                 static_cast<dst_t>(v_hi) * d;
         }
     }
@@ -709,7 +711,7 @@ __global__ void dequantize_block_rocmfp4_fast_q4_0(const void* __restrict__ vx,
 template<typename dst_t>
 static void dequantize_row_rocmfp4_fast_q4_0_cuda(const void * vx, dst_t * y,
                                                    const int64_t k, const int64_t n_per_row, cudaStream_t stream) {
-    const int nb = (k + QK4_0_ROCMFP4 - 1) / QK4_0_ROCMFP4;
+    const int nb = k / QK4_0_ROCMFP4;
     const int nblocks = (nb + CUDA_DEQUANTIZE_BLOCK_SIZE - 1) /
                         CUDA_DEQUANTIZE_BLOCK_SIZE;
     dequantize_block_rocmfp4_fast_q4_0<<<nblocks, CUDA_DEQUANTIZE_BLOCK_SIZE,
@@ -721,6 +723,7 @@ static void dequantize_row_rocmfp4_fast_q4_0_cuda(const void * vx, dst_t * y,
 // Ported from ROCmFPX/ggml/rocmfpx/rocmfpx.c:381-396 (rocmfpx_dequantize_row_fp2)
 // Each thread handles one GGML block (32 weights from 10 bytes)
 // =============================================================================
+template<typename dst_t>
 __global__ void dequantize_block_rocmfpx_q2_0(const void* __restrict__ vx,
                                                dst_t* __restrict__ y,
                                                int64_t k) {
@@ -761,6 +764,7 @@ static void dequantize_row_rocmfpx_q2_0_cuda(const void * vx, dst_t * y,
 // 3-bit indices packed 8 per 3 bytes
 // Each thread handles one GGML block (32 weights from 14 bytes)
 // =============================================================================
+template<typename dst_t>
 __global__ void dequantize_block_rocmfpx_q3_0(const void* __restrict__ vx,
                                                dst_t* __restrict__ y,
                                                int64_t k) {
@@ -834,6 +838,7 @@ __device__ __forceinline__ void rocmfpx_fp6_unpack4(const uint8_t* src,
     dst[3] = (src[2] >> 2) & 0x3F;
 }
 
+template<typename dst_t>
 __global__ void dequantize_block_rocmfpx_q6_0(const void* __restrict__ vx,
                                                dst_t* __restrict__ y,
                                                int64_t k) {
@@ -885,6 +890,7 @@ static void dequantize_row_rocmfpx_q6_0_cuda(const void * vx, dst_t * y,
 // Direct signed int8 clamped [-127, 127]
 // Each thread handles one GGML block (32 weights from 33 bytes)
 // =============================================================================
+template<typename dst_t>
 __global__ void dequantize_block_rocmfpx_q8_0(const void* __restrict__ vx,
                                                dst_t* __restrict__ y,
                                                int64_t k) {
@@ -998,6 +1004,7 @@ __device__ __constant__ int8_t kvalues_iq4k[32] = {
 // IQ2_K: 76 bytes/256w, 2-bit dual-codebook
 // Block: half d, uint16 extra, uint8 scales[8], uint8 qs[64]
 // Per ib32 (32 weights): nibble scale, dual codebook via extra bits
+template<typename dst_t>
 __global__ void dequantize_block_iq2_k(const void* __restrict__ vx,
                                         dst_t* __restrict__ yy) {
     const int i = blockIdx.x;
@@ -1045,6 +1052,7 @@ static void dequantize_row_iq2_k_cuda(const void* vx, dst_t* y,
 // IQ3_K: 110 bytes/256w, 3-bit dual-codebook with signed scales
 // Block: half d, uint16 extra, uint16 scales_h, uint8 scales_l[8],
 //        uint8 qs[64], uint8 qh[32]
+template<typename dst_t>
 __global__ void dequantize_block_iq3_k(const void* __restrict__ vx,
                                         dst_t* __restrict__ yy) {
     const int i = blockIdx.x;
@@ -1097,6 +1105,7 @@ static void dequantize_row_iq3_k_cuda(const void* vx, dst_t* y,
 // IQ4_K: 144 bytes/256w, 4-bit dual-codebook with 6-bit signed scales
 // Block: half d, uint16 extra, uint8 scales_h[4], uint8 scales_l[8],
 //        uint8 qs[128]
+template<typename dst_t>
 __global__ void dequantize_block_iq4_k(const void* __restrict__ vx,
                                         dst_t* __restrict__ yy) {
     const int i = blockIdx.x;

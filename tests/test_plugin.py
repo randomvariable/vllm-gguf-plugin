@@ -20,6 +20,7 @@ from vllm.transformers_utils.config import get_config_parser
 
 import vllm_gguf_plugin.config_parser as gguf_config_parser_module
 import vllm_gguf_plugin.quantization as gguf_quantization
+import vllm_gguf_plugin.weights_adapter.diffusion.loader as diffusion_loader
 from vllm_gguf_plugin import OOTGGUFConfig, OOTGGUFModelLoader, register
 from vllm_gguf_plugin.config_parser import GGUFConfigParser
 from vllm_gguf_plugin.quantization import (
@@ -183,6 +184,57 @@ def test_gguf_linear_same_type_shards_skip_concat(monkeypatch):
 
     assert calls == [((8, 4), 3)]
     assert out.shape == (2, 8)
+
+
+def test_gguf_linear_accepts_rocmfp4_fast_for_materialization(monkeypatch):
+    register()
+    monkeypatch.setattr(parameter_module, "get_tensor_model_parallel_rank", lambda: 0)
+    monkeypatch.setattr(
+        parameter_module, "get_tensor_model_parallel_world_size", lambda: 1
+    )
+
+    layer = MergedColumnParallelLinear(
+        input_size=4,
+        output_sizes=[4],
+        bias=False,
+        quant_config=OOTGGUFConfig.from_config({}),
+        disable_tp=True,
+    )
+    layer.weight_loader_v2(layer.qweight, torch.ones((4, 4), dtype=torch.uint8), 0)
+    layer.weight_loader_v2(
+        layer.qweight_type, torch.tensor(101, dtype=torch.uint8), 0
+    )
+
+    layer.quant_method.process_weights_after_loading(layer)
+
+    assert isinstance(layer.qweight, GGUFWeightParameter)
+    assert isinstance(layer.qweight_type, GGUFWeightTypeParameter)
+    assert layer.qweight_type.weight_type == 101
+
+
+def test_diffusion_type_101_uses_plugin_cpu_fallback(monkeypatch):
+    calls = {}
+
+    def fake_fallback(qweight, qtype, m, n, dtype):
+        calls.update(qweight=qweight, qtype=qtype, m=m, n=n, dtype=dtype)
+        return torch.full((m, n), 7.0, dtype=dtype)
+
+    monkeypatch.setattr(diffusion_loader, "ggml_dequantize_triton", fake_fallback)
+    monkeypatch.setattr(
+        diffusion_loader,
+        "dequantize",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("wrong decoder")),
+    )
+
+    qweight = torch.zeros((2, 17), dtype=torch.uint8)
+    result = diffusion_loader._dense_weight_from_gguf_qweight(qweight, 101)
+
+    assert torch.equal(result, torch.full((2, 32), 7.0))
+    assert calls["qweight"] is qweight
+    assert calls["qtype"] == 101
+    assert calls["m"] == 2
+    assert calls["n"] == 32
+    assert calls["dtype"] is torch.float32
 
 
 def test_gguf_config_parser_uses_parent_dir_for_local_file(tmp_path, monkeypatch):

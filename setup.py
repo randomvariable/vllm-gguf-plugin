@@ -37,6 +37,11 @@ if _should_build_extension():
         # Exposes aoti_torch_get_current_cuda_stream in the AOTI shim.
         "-DUSE_CUDA",
     ]
+    cxx_args = ["-O3", "-std=c++17"]
+    if is_rocm:
+        # Select HIP runtime code in both C++ and HIP translation units.
+        cxx_args.append("-DUSE_ROCM")
+        nvcc_args.append("-DUSE_ROCM")
     if not is_rocm:
         # hipcc (ROCm 7.x) rejects nvcc-only flags like --use_fast_math.
         nvcc_args.insert(2, "--use_fast_math")
@@ -55,7 +60,7 @@ if _should_build_extension():
                 ],
                 py_limited_api=True,
                 extra_compile_args={
-                    "cxx": ["-O3", "-std=c++17"],
+                    "cxx": cxx_args,
                     "nvcc": nvcc_args,
                 },
             )

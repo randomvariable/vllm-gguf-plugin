@@ -7,12 +7,12 @@ Uses dequant+GEMM instead of the fused kernel path (which expects 2D inputs).
 
 from __future__ import annotations
 
-import gguf
 import torch
 from vllm.model_executor.layers.linear import LinearBase, UnquantizedLinearMethod
 from vllm.model_executor.layers.quantization.base_config import QuantizeMethodBase
 
 from .. import ops
+from ..ik_types import gguf_qweight_dequant_shape
 from .config import GGUFConfig
 from .linear import GGUFLinearMethod
 from .utils import UNQUANTIZED_TYPES, is_layer_skipped_gguf
@@ -24,8 +24,9 @@ def dequant_gemm_gguf(
     if qweight_type in UNQUANTIZED_TYPES:
         return x @ qweight.T
 
-    block_size, type_size = gguf.GGML_QUANT_SIZES[qweight_type]
-    shape = (qweight.shape[0], qweight.shape[1] // type_size * block_size)
+    shape = gguf_qweight_dequant_shape(
+        qweight.shape[0], qweight.shape[1], qweight_type
+    )
     weight = ops.ggml_dequantize(qweight, qweight_type, *shape, x.dtype)
     return x @ weight.T
 

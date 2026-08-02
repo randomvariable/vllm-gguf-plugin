@@ -8,9 +8,8 @@ about these types, so we patch the enum and quant-size tables at import
 time to allow the GGUFReader to parse tensors with these types.
 
 Tensor type 100 = GGML_TYPE_Q4_0_ROCMFP4 (block_rocmfp4, 18 bytes/block,
-32 weights/block). We also register 101 = GGML_TYPE_Q4_0_ROCMFP4_FAST
-(block_rocmfp4_fast, 17 bytes/block, 32 weights/block) for completeness,
-though only type 100 has a GPU dequant kernel in this plugin.
+32 weights/block). Type 101 = GGML_TYPE_Q4_0_ROCMFP4_FAST (block_rocmfp4_fast,
+17 bytes/block, 32 weights/block).
 """
 
 import gguf
@@ -76,9 +75,13 @@ def _patch_gguf_enum():
     # Patch any submodule that has a local reference
     import sys
     for mod_name, mod in list(sys.modules.items()):
-        if mod_name and mod_name.startswith("gguf") and mod is not None:
-            if getattr(mod, "GGMLQuantizationType", None) is GGMLQuantizationType:
-                mod.GGMLQuantizationType = new_enum
+        if (
+            mod_name
+            and mod_name.startswith("gguf")
+            and mod is not None
+            and getattr(mod, "GGMLQuantizationType", None) is GGMLQuantizationType
+        ):
+            mod.GGMLQuantizationType = new_enum
 
     # Patch GGML_QUANT_SIZES with block sizes for new types
     # Format: (block_qk, type_size_bytes)

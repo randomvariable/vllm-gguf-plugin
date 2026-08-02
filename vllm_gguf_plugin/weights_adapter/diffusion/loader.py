@@ -13,7 +13,6 @@ import os
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
-import gguf
 import torch
 from gguf import GGMLQuantizationType as WeightType
 from gguf import dequantize
@@ -21,7 +20,10 @@ from huggingface_hub import hf_hub_download
 from torch import nn
 
 from ... import ops
+from ...ik_types import gguf_qweight_dequant_shape
 from ...quantization.utils import UNQUANTIZED_TYPES
+from ...triton.dequantize.interface import ggml_dequantize_triton
+from ...triton.gemm.utils import GGML_TYPE_Q4_0_ROCMFP4_FAST
 from ...weight_utils import download_gguf, resolve_local_gguf
 
 
@@ -127,11 +129,19 @@ def _dense_weight_from_gguf_qweight(
         return qweight
 
     if not qweight.is_cuda:
+        if int(qtype) == GGML_TYPE_Q4_0_ROCMFP4_FAST:
+            shape = gguf_qweight_dequant_shape(
+                qweight.shape[0], qweight.shape[1], int(qtype)
+            )
+            return ggml_dequantize_triton(
+                qweight, int(qtype), *shape, torch.float32
+            )
         weight = dequantize(qweight.detach().cpu().numpy(), qtype)
         return torch.from_numpy(weight).to(dtype=torch.float32)
 
-    block_size, type_size = gguf.GGML_QUANT_SIZES[qtype]
-    shape = (qweight.shape[0], qweight.shape[1] // type_size * block_size)
+    shape = gguf_qweight_dequant_shape(
+        qweight.shape[0], qweight.shape[1], int(qtype)
+    )
     return ops.ggml_dequantize(qweight, int(qtype), *shape, torch.float32)
 
 
