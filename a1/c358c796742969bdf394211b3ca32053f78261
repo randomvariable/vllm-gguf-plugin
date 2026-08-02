@@ -1,0 +1,533 @@
+setup.py
+  s_b70e44842e0715::t_ea0396647da6f7 40-44,63
+vllm_gguf_plugin/quantization/linear.py
+  s_40a43c597cf907::t_f53f2b1a567db9 14
+  s_40a43c597cf907::t_7ae147144204c7 50-52
+vllm_gguf_plugin/ops.py
+  s_c9f8eaf06b49f0::t_bf4967714de48a 128-142
+  s_ccb793f8a85303::t_df255e229dd4d2 143
+  s_6100c6c1b88163::t_ebc09d3849b1ae 47,144
+  s_ecd1c3cf26916d::t_8a7b0057b7ec42 145-148
+  s_f082ecfc91268d::t_78f7ad445e2bb6 250
+  s_ecd1c3cf26916d::t_36f6e06c9eacab 149-151
+README.md
+  s_f4aa49ec05ae77::t_241e0d5eb8a25b 3-5,29
+  s_088d6e6869d647::t_a018b5ad8aa604 26
+  s_5d489d32b1443f::t_5fcc11774f0bfa 14-17
+  s_f4aa49ec05ae77::t_4873e6f577c6e2 6,22,27-28,31,33-37
+  s_6100c6c1b88163::t_32d6899c751bea 30
+  s_a35c62a3e8a532::t_2e76c9410b7764 32
+vllm_gguf_plugin/ik_types.py
+  s_1c1a1e430197dc::t_01d82e7d81dc52 30,186-190,195-204,209,233-235,270
+  s_ec5f23b63251b9::t_282058f5868a8a 16-17,67-68,71-72,255-261
+  s_27156c1387fe35::t_835a5361f2d7f7 49,51,53
+  s_1c1a1e430197dc::t_26fba09817c3d5 239
+  s_40a43c597cf907::t_353523a789b870 103-143,157-179
+  s_27156c1387fe35::t_b17e85a3cd4af4 238,253
+  s_e4181b67da34bc::t_3eee459fa7abbc 240-241,267-268
+  s_088d6e6869d647::t_33a65d600e3aa9 191-194
+  s_e4181b67da34bc::t_b59eae48e35b31 263-266
+  s_40a43c597cf907::t_dc70df972a0a8a 180-181
+vllm_gguf_plugin/triton/dequantize/ik_ks_reference.py
+  s_4b620e7d6cb00e::t_583995ca11378d 1-19,120-125,129,133-137,142-158,161-163,167-183,190-204,211-221,226-228,239-247
+  s_9176aa5a818612::t_388dc617f19eb3 20-119,126-128,130-132,138,141,164-166,184-189,205-210,222-225,229-238
+  s_4b620e7d6cb00e::t_16364a8f353ef7 139-140
+  s_4b620e7d6cb00e::t_37ea5a5fefc763 159-160
+vllm_gguf_plugin/csrc/cuda_compat.h
+  s_b70e44842e0715::t_ea0396647da6f7 3,7,40,46,57,63,70
+vllm_gguf_plugin/triton/gemm/utils.py
+  s_6100c6c1b88163::t_ebc09d3849b1ae 58,101,143
+  s_6100c6c1b88163::t_32d6899c751bea 183-187
+tests/test_ik_k234_reference.py
+  s_23de81d0bafd07::t_d1581af42e889b 130
+  s_b4109e46e285e3::t_cbfb92501fddf0 29-31,41-43,77-79,111-113,135-142
+  s_23de81d0bafd07::t_fcb6cef03d393a 63-65,98-100,124-125,131-132
+  s_23de81d0bafd07::t_62f47c04dc7b88 51-62,66-67,84-94,96-97,102,116-123,126-129
+  s_b4109e46e285e3::t_2d436bfeb158c6 1-28,32-40,44-50,68-76,80-83,95,101,103-110,114-115,133-134,143-155
+vllm_gguf_plugin/rocmfpx_types.py
+  s_6100c6c1b88163::t_ebc09d3849b1ae 11-12
+  s_ec5f23b63251b9::t_282058f5868a8a 78-84
+tests/test_rocmfpx_reference.py
+  s_bf887d1e5a7f71::t_b8d04a0b2575c1 81
+  s_bf887d1e5a7f71::t_1dd1690f048db9 1-3,6-14,66-69,74-80,82,87-95,100-110
+  s_b98c00f16ee575::t_5b244c217deb4f 4-5,15-65,70-73,83-86,96-99
+vllm_gguf_plugin/triton/dequantize/ik_k234_reference.py
+  s_23de81d0bafd07::t_f9663b6ae5b9e1 69,92-94,119-120,146-147
+  s_b4109e46e285e3::t_cbfb92501fddf0 12,72-74,96-99,118,124-126,148-150
+  s_23de81d0bafd07::t_83b246d605b50d 82,107,134
+  s_b4109e46e285e3::t_46213c7863f130 66-67
+  s_b4109e46e285e3::t_529688690a45c7 1-11,13-65,68,70-71,75-81,83-91,95,100-106,108-117,121-123,127-133,135-145,151-158
+vllm_gguf_plugin/triton/dequantize/interface.py
+  s_44f85aa58fdb3f::t_c190fdac3ac681 33
+  s_bf887d1e5a7f71::t_b8d04a0b2575c1 163-167,187-194
+  s_bf887d1e5a7f71::t_65c273c5c7048a 74-86,93,103-110,113,120-124,127,139-147,168-173,185-186,195-197,288-289
+  s_bf887d1e5a7f71::t_83da56732fb7f8 100,116,128-130,133-138
+  s_a35c62a3e8a532::t_a950bf940b839e 111
+  s_6100c6c1b88163::t_32d6899c751bea 87-90,92,94-97,102,112,115,117-119,198-200
+  s_44f85aa58fdb3f::t_7721fa0db08f2b 32,35,68,70
+  s_44f85aa58fdb3f::t_f6635f644292e4 34,64-67,69,71
+  s_5d489d32b1443f::t_3e90b1f98c2186 98
+  s_e0c36023f085d7::t_c0ad5815db915e 201-240,244-279,290-296
+  s_5a361534bbd2dd::t_4a2f96957a5985 297-299
+  s_52b5077d4ee121::t_bdb285f8c8745e 31,36
+  s_bf887d1e5a7f71::t_e1a931a35c0c94 91
+  s_b98c00f16ee575::t_5b244c217deb4f 3-8,125-126,148-162,174-184,241-242
+  s_b98c00f16ee575::t_b3ccdafb7194e3 131-132,243
+  s_f082ecfc91268d::t_78f7ad445e2bb6 114
+  s_5d489d32b1443f::t_cdeff0b6a9d5ab 99,101
+  s_44f85aa58fdb3f::t_336bfda2d7d434 72-73
+tests/test_reference_dispatch.py
+  s_44f85aa58fdb3f::t_c190fdac3ac681 7-9
+  s_44f85aa58fdb3f::t_7721fa0db08f2b 5-6,10,13-15,21,23,25-30,34,36
+  s_44f85aa58fdb3f::t_0542928e9b788b 33,35
+  s_44f85aa58fdb3f::t_eeef654b26c727 1-4,11-12,16-20,22,24,31-32,37-44,54-64
+  s_44f85aa58fdb3f::t_bbb5ffbe4b7690 45-53
+vllm_gguf_plugin/llama_types.py
+  s_1c1a1e430197dc::t_01d82e7d81dc52 19,26
+  s_088d6e6869d647::t_33a65d600e3aa9 20,38,45-48
+  s_088d6e6869d647::t_d742a7861a1c65 63
+  s_1c1a1e430197dc::t_3246fe1fb20470 37,62
+  s_1c1a1e430197dc::t_c5327c9dbdf079 41-44,49-52,54-55,57
+  s_a35c62a3e8a532::t_8dfabcd0393f6b 30,53,56
+  s_a35c62a3e8a532::t_775141fc6258c7 31
+tests/test_rocmfpx_fast.py
+  s_f082ecfc91268d::t_bcfc211c222576 82,85,89
+  s_f082ecfc91268d::t_78f7ad445e2bb6 3-4,79-81,83-84,86-88
+  s_5d489d32b1443f::t_ede5b49ece74e6 100-107
+  s_a35c62a3e8a532::t_2126ca3e784ec2 20,49-50
+  s_a35c62a3e8a532::t_127c7641330e82 6
+  s_f082ecfc91268d::t_8e826fe18bd0d2 7,41-47,59-67,90-91,93-99,108-132
+  s_352ec57afd4f21::t_153cadc8bd5d53 56
+  s_352ec57afd4f21::t_ec9ddd0cd06e6a 1,5,8-19,21-23,25-40,51-55,57-58,68-73,76-78
+  s_352ec57afd4f21::t_9d1ba59def20f7 24,48,74-75
+  s_a35c62a3e8a532::t_a950bf940b839e 92
+tests/test_ik_bn_reference.py
+  s_27156c1387fe35::t_baf74080a6f8fe 149-151
+  s_e4181b67da34bc::t_b59eae48e35b31 24-28
+  s_27156c1387fe35::t_835a5361f2d7f7 1-2,4-5,8-20,22-23,29-30,34-39,41-43,45-56,60,123-148,155-165
+  s_27156c1387fe35::t_b17e85a3cd4af4 58,153
+  s_27156c1387fe35::t_ba721a8a1deefd 3,6-7
+  s_2b32588757a5b9::t_1ca40712d6667a 21,77-79,101-122
+  s_27156c1387fe35::t_abb8b23eb74831 57,59,152,154
+  s_e4181b67da34bc::t_de5ebddedd624d 80-100
+  s_e4181b67da34bc::t_1ef599c5f467cd 31-33,40,44,61-76
+vllm_gguf_plugin/csrc/gguf/gguf_kernel.cu
+  s_819bd7a1becc6b::t_322d54cdf025f7 6-7,98,101-114,118-128
+  s_805bf46fb73e0f::t_8ac045140e82b3 99-100
+  s_819bd7a1becc6b::t_dec6d6fe85cb45 115-117
+  s_b70e44842e0715::t_0ddaa7072ea60b 137-139
+  s_74098464dffd68::t_555220a4a25d07 4-5
+  s_b70e44842e0715::t_ea0396647da6f7 28-30,257-258,331-332,436-437,575-576,637-638
+  s_b70e44842e0715::t_3e968b712a8b33 31
+vllm_gguf_plugin/weights_adapter/diffusion/loader.py
+  s_40a43c597cf907::t_f53f2b1a567db9 23
+  s_702f77c0f6bc87::t_7d5fdb4292efcb 25-26,132,136-138
+  s_40a43c597cf907::t_34f7fed6b69e9c 133-135,142-144
+vllm_gguf_plugin/quantization/diffusion_config.py
+  s_40a43c597cf907::t_4491984399ab9e 15,27-29
+tests/test_ik_reference.py
+  s_5a361534bbd2dd::t_8ee3814c7f0027 1-2,8-26,29-45,47-52
+  s_5a361534bbd2dd::t_4a2f96957a5985 27-28
+  s_b98c00f16ee575::t_5b244c217deb4f 5-7,53
+  s_5a361534bbd2dd::t_f14ee35f7eb17f 46
+  s_b98c00f16ee575::t_b049e0bf981256 3-4
+tests/test_ik_k56_reference.py
+  s_e89d5678fba2d4::t_183b0ae5db32ca 1-53,91-95,100-118,121-131,135-136
+  s_f02e28e3ca225d::t_b3c43da81ed41d 54-63,65-90
+  s_f02e28e3ca225d::t_ad39c2fe003e48 64
+  s_9176aa5a818612::t_388dc617f19eb3 96-99,132-134
+  s_b4109e46e285e3::t_cbfb92501fddf0 119-120
+vllm_gguf_plugin/triton/dequantize/ik_k56_reference.py
+  s_e89d5678fba2d4::t_b8c663434243ae 1-14,79-83,212-220,224,228-229,234-240,244-250,254-259,267-274,278-286,289,301-307
+  s_9176aa5a818612::t_388dc617f19eb3 15-78,84-211,221-223,225-227,230-232,251-253,260-261,264-266,287-288,292-300
+  s_f02e28e3ca225d::t_b3c43da81ed41d 233,241-243,262-263,275-277,290-291
+tests/test_ik_row_prefix_geometry.py
+  s_40a43c597cf907::t_e358bedacb2e45 19
+  s_40a43c597cf907::t_032a3926722b21 169
+  s_40a43c597cf907::t_9d52fd3024db1f 196-200
+  s_40a43c597cf907::t_15b36e1669e755 173-175
+  s_40a43c597cf907::t_6a024aba587826 37-47,99-100
+  s_40a43c597cf907::t_4222ac8b5ae544 1-18,20-36,48-59,62,64-83,86-96,101-137,140-168,170-172,176-195,201-281
+  s_40a43c597cf907::t_85eacfc2248689 60-61,63,84-85,97-98,138-139
+vllm_gguf_plugin/csrc/gguf/dequantize.cuh
+  s_6100c6c1b88163::t_f7b18596bf063f 703,705
+  s_819bd7a1becc6b::t_322d54cdf025f7 714
+  s_457b1837de5299::t_56c71a39e8e95f 647,687,726,767,841,893,1007,1055,1108
+tests/test_llama_types.py
+  s_b98c00f16ee575::t_5b244c217deb4f 48,86-96,117,180-185,206-211,217-221
+  s_f082ecfc91268d::t_8e826fe18bd0d2 21
+  s_8ab6ff15798ec4::t_e5a2441075246f 20,22,82,98,102-104,113-115,118-123
+  s_ecd1c3cf26916d::t_cf025c0b4d3b98 13,15
+  s_ecd1c3cf26916d::t_8a7b0057b7ec42 58-62,124-125
+  s_8ab6ff15798ec4::t_75d55803de37ba 63,67-72,76-77
+  s_8ab6ff15798ec4::t_9213a6aa95f136 23-40,64-66,73-75,78-80,85,101
+  s_e0c36023f085d7::t_132c9df54f7a4c 199-205,212-216,222-232
+  s_ecd1c3cf26916d::t_eb4995443a6ae4 10
+  s_a0560c618bebe2::t_6053ca2e6b4b5e 126-143,149-174
+  s_e0c36023f085d7::t_51f83f66f2698c 233-251
+  s_1c1a1e430197dc::t_f032467b13aa99 9,11-12,44-46,49,175-179,186-192
+  s_088d6e6869d647::t_33a65d600e3aa9 47
+  s_8ab6ff15798ec4::t_2d3fac9dd94f76 81,83,97,99-100
+  s_a35c62a3e8a532::t_2126ca3e784ec2 84,116
+  s_a0560c618bebe2::t_9d6f35e43e2048 105-112,144-148
+  s_b98c00f16ee575::t_6f8fe870b09989 193-194,252-253
+tests/test_plugin.py
+  s_702f77c0f6bc87::t_6c464e760e8929 233-237
+  s_702f77c0f6bc87::t_15999bbbb6055a 23,213-232
+  s_e2c95119bf12de::t_9de66cb0190cda 189-212,238-239
+tests/test_dispatch_capabilities.py
+  s_ccb793f8a85303::t_df255e229dd4d2 1-4,8
+  s_c9f8eaf06b49f0::t_91ddd093fed2c5 10-65
+  s_6100c6c1b88163::t_c4b27c23393337 9
+  s_a35c62a3e8a532::t_8dfabcd0393f6b 5-7
+vllm_gguf_plugin/quantization/utils.py
+  s_6100c6c1b88163::t_ebc09d3849b1ae 82,89
+vllm_gguf_plugin/triton/dequantize/ik_reference.py
+  s_5a361534bbd2dd::t_cb7fc2cf49bacd 13-15,28-30,46-48
+  s_5a361534bbd2dd::t_4a2f96957a5985 1-12,16-27,31-39,43-45,49-53,55-62
+  s_b98c00f16ee575::t_2948607d71e6c7 40
+  s_b98c00f16ee575::t_5b244c217deb4f 41-42,54
+tests/test_ik_ks_reference.py
+  s_4b620e7d6cb00e::t_16364a8f353ef7 59,67
+  s_4b620e7d6cb00e::t_729ec257823140 1-57,60-66,68-95
+  s_4b620e7d6cb00e::t_c6ea9e29906e4e 58
+vllm_gguf_plugin/triton/dequantize/ik_bn_reference.py
+  s_e4181b67da34bc::t_3e35f1e94e0536 66,69,85
+  s_27156c1387fe35::t_9b7f182df01454 32-34
+  s_27156c1387fe35::t_3b0662d34af3eb 1-27,31,35-40,43-61,64-65,67-68,70-84,86-92
+  s_27156c1387fe35::t_abb8b23eb74831 28-30,63
+  s_27156c1387fe35::t_baf74080a6f8fe 41-42
+  s_27156c1387fe35::t_b17e85a3cd4af4 62
+vllm_gguf_plugin/triton/dequantize/ik_kss_kl_reference.py
+  s_9176aa5a818612::t_64319e7b110b7d 43
+  s_add2fe7678a667::t_bdcf61bfda9e96 45
+  s_9176aa5a818612::t_cd84bf397eaa2b 1-39,41-42,46-47,49-50,85-90,92-99,101,107-111,144-145,148-155,160-161,179-184
+  s_9176aa5a818612::t_23f9ba0cfe7aad 104-106,166-171,173-178
+  s_9176aa5a818612::t_d3fd8567ee3918 40,51-84,100,112-143
+  s_9176aa5a818612::t_7df552817cd963 91
+  s_9176aa5a818612::t_c3854504ae6228 146-147,162-165,172
+  s_9176aa5a818612::t_a67c4e13e97926 44,48
+  s_9176aa5a818612::t_dbb23b6516ee77 102-103,156-159
+vllm_gguf_plugin/quantization/vocal_embeds.py
+  s_40a43c597cf907::t_bac2bc2566a0dd 13,36-38,40
+tests/test_ik_kss_kl_reference.py
+  s_add2fe7678a667::t_bdcf61bfda9e96 31-40,42-43
+  s_add2fe7678a667::t_d5e797a1674982 41
+  s_9176aa5a818612::t_23f9ba0cfe7aad 55-57
+  s_9176aa5a818612::t_dbb23b6516ee77 20-21,27-28,72-79
+  s_9176aa5a818612::t_e825e04e049228 1-4,7-19,22-26,29-30,44-50,53-54,58-71
+  s_9176aa5a818612::t_cd84bf397eaa2b 51-52
+  s_9176aa5a818612::t_a546e6e2f37dd9 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.19",
+  "base_commit_sha": "a1c358c796742969bdf394211b3ca32053f78261",
+  "prompts": {},
+  "sessions": {
+    "s_088d6e6869d647": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0423ca203ffeuU3WQJabUj03OD",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_1c1a1e430197dc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0424c9f5bffe7aHRZXg2Ry4oer",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_23de81d0bafd07": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04042ecf5ffe6Oz2ZfOFveXLUx",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_27156c1387fe35": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0405d3597ffeHCrKm0Rv2bmZ78",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_2b32588757a5b9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040547815ffejn1ds0EK7YA69m",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_352ec57afd4f21": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04118c20bffeZSNx6ropJM1Qbn",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_40a43c597cf907": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040396690ffen0A6k36gLDGWGp",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_44f85aa58fdb3f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040489ca6ffeSsvSBtJL2BQG1B",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_457b1837de5299": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040717eadffeRO9GluXAeFy2vy",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_4b620e7d6cb00e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04050c67dffegtg8bqMquKvw2C",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_52b5077d4ee121": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0405363faffe1H8q3neD4mOL66",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_5a361534bbd2dd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0408ac4a5ffe231a4ImqHMGPrY",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_5d489d32b1443f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040bdea7ffferwwCk3aLFxDLvA",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_6100c6c1b88163": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040e82311ffe8LjUCyvJCtdm1F",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_702f77c0f6bc87": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040ac1aeeffeBpEHVfgdOHxu8P",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_74098464dffd68": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04078c32affede20sjM0AQyRdF",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_805bf46fb73e0f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040bc820affeoq8deteqmkCntq",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_819bd7a1becc6b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040c88591ffeW7YrwlYXvvjz9x",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_8ab6ff15798ec4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040f0bbf3ffeh6dRMbOs10gL6d",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_9176aa5a818612": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04050c66effePe79B28o4aRfeZ",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_a0560c618bebe2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040a7e1d7ffemJcgywFJZ5XpPl",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_add2fe7678a667": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04042ecc6ffeerFhqnbqsHab1p",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_b4109e46e285e3": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04050c7e9ffeMmpjxMUrKKTHT1",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_b70e44842e0715": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0424d33c2ffezeFP3lipJAzV5g",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_b98c00f16ee575": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0407bd6e0ffeod13m67xhlGFls",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_bf887d1e5a7f71": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0408ac4b5ffeVUft7ctQwZyfTD",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_c9f8eaf06b49f0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040657fd4ffe8NcFm2lzbhYzLg",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_ccb793f8a85303": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04230e663ffeI4zRN0Gtpq6ZxI",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_e0c36023f085d7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0408ac563ffe5Xbe0I6fV39KCC",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_e2c95119bf12de": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040c66453ffeN33DBsr0bJHbQu",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_e4181b67da34bc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04041ec90ffen3ge9TSWO7l4it",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_e89d5678fba2d4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04050c7c1ffeHOGxwFTS0yN0CJ",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_ec5f23b63251b9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04218ecbdffe7T935hl9XcSI3a",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_ecd1c3cf26916d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042230a89ffeQ7EOPYFJD46Mfm",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_f02e28e3ca225d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_04042ecd7ffeKWdCJsfES1MKku",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_f082ecfc91268d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_040c80f61ffe2hAV4Qz3XkhHjS",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_f4aa49ec05ae77": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0425018afffeXI18bhb1omLlx5",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
