@@ -661,9 +661,9 @@ __global__ void dequantize_block_rocmfp4_q4_0(const void* __restrict__ vx,
             uint8_t q = x[i].qs[j];
             int8_t v_lo = ROCMFP4_CODEBOOK10[q & 0x0f];
             int8_t v_hi = ROCMFP4_CODEBOOK10[q >> 4];
-            y[i * QK4_0_ROCMFP4 + j * 2 + 0] =
+            y[i * QK4_0_ROCMFP4 + j] =
                 static_cast<dst_t>(v_lo) * d0;
-            y[i * QK4_0_ROCMFP4 + j * 2 + 1] =
+            y[i * QK4_0_ROCMFP4 + j + 16] =
                 static_cast<dst_t>(v_hi) * d1;
         }
     }
