@@ -1,0 +1,124 @@
+tests/test_ik_kt_reference.py
+  s_f6eafd23a5df1f::t_701703a7fde9eb 148
+  s_f6eafd23a5df1f::t_ffc12bf2890b68 38,68-72,74,105,136,146-147,149-152,161,163-166,169-170,193,196,199-200
+  s_241e39490ea2fd::t_e711797e04b371 190
+  s_881295cc2fe7ff::t_f7b833d568b3b3 79
+  s_f6eafd23a5df1f::t_3aed0ac72578ca 173
+  s_423805f723ecef::t_0aaa5da3392ffb 40-63,78,80,89,91,157-159,167,171,177-179
+  s_f6eafd23a5df1f::t_6030f41d8ff63b 162,168
+  s_f6eafd23a5df1f::t_681c1983f5046d 102-104,195
+  s_241e39490ea2fd::t_7d60f8ba367f6d 6-15,24-36,39,64,66,82,87,93-94,97-101,107-111,113-119,121-122,125-135,137-139,144,154-155,160,174-175,180,185-186,191,202-203,213,216-217,223,229,231-232,234-239,241-242,246-248
+  s_423805f723ecef::t_a9524a94d47006 240
+  s_423805f723ecef::t_e4afeb07a8f240 141-143,204-208,219-221
+  s_f6eafd23a5df1f::t_0b1daa48f00f57 106,187,189
+  s_881295cc2fe7ff::t_5f2a24a3adca92 181-182
+  s_423805f723ecef::t_2dcae3ed2e9603 1-5,16-23,37,65,67,73,75-77,81,83-85,88,92,95-96,112,120,123-124,140,145,153,156,172,176,183-184,188,192,201,209-212,214-215,218,222,225,227,233,243-245
+  s_881295cc2fe7ff::t_e6b2adc0535ef1 86,90,224,226,228,230
+  s_f6eafd23a5df1f::t_0be0dc91ffdf13 198
+  s_f6eafd23a5df1f::t_e7449855e43d52 194,197
+vllm_gguf_plugin/triton/dequantize/ik_kt_reference.py
+  s_971810e74ad337::t_b0ec16cd68ee0b 1,56,59,64,70-71,73-74,81-83,102,107-108,114-118,122,132-136,144-148,153,156-157
+  s_7b57de2aea480f::t_6db2ed4c86a284 61,65,76-79
+  s_f9b378793fd9d5::t_f78f93f3a2b960 69,72,163-165
+  s_a35c62a3e8a532::t_30ea6ef22fe78d 143
+  s_971810e74ad337::t_dba30a1aee51d1 9-14,22-55,75,80,93-95,99-101,103-105,119-121,123-126,128-131,137-141,150-152,159-161,167-171
+  s_971810e74ad337::t_ace44feff0d6ce 154-155,162
+  s_d7a721481209f7::t_967060ea41bdec 142,158
+  s_971810e74ad337::t_c5532c353f7a1d 2-8,15-21,57-58,60,62-63,66-68,84-92,96-98,106,109-113,127,149,166,172-195
+tests/test_ik_kt_matmul_fallback.py
+  s_b5eb1e44c4bd86::t_63782edfd37eb4 1-5,8-10,12-35,38-39,41-42,44-45,55-74,76-82
+  s_b5eb1e44c4bd86::t_d9dff07e72a701 6-7,11,36-37,40,43,46-54,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "a6e4396465d1de02b46f3bd70ea4c702a7a35101",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_241e39490ea2fd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03db0174cffenGEs0ZsRpLBNID",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_423805f723ecef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d790023ffe7oUui12v2xY3Rb",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_7b57de2aea480f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d14b6b7ffeXIVfAQKF3fz0vn",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_881295cc2fe7ff": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d19ae4dffeRpMMUj1WJcGJA3",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_971810e74ad337": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03da8f67effekmuJCpqIAV0zkp",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_b5eb1e44c4bd86": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d53c141ffeUo5OZrt3cvoMG0",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_d7a721481209f7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d80e9a0ffeCSRnFW9YR8wdI2",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_f6eafd23a5df1f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d367e49ffe2zrRdLbJi3JnZu",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_f9b378793fd9d5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03d238f37ffeeZYNZr0zoT0eln",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    }
+  }
+}
