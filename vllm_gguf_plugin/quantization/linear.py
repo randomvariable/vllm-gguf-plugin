@@ -12,6 +12,11 @@ from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
 from ..ik_types import gguf_qweight_dequant_shape
+from ..rocmfpx_types import (
+    GGML_TYPE_Q4_0_ROCMFP4,
+    GGML_TYPE_Q4_0_ROCMFP4_FAST,
+    GGML_TYPE_Q8_0_ROCMFPX,
+)
 from .params import (
     GGUFUninitializedWeightParameter,
     GGUFUninitializedWeightTypeParameter,
@@ -34,17 +39,92 @@ from .utils import (
 def _fused_mul_mat_gguf(
     x: torch.Tensor, qweight: torch.Tensor, qweight_type: int
 ) -> torch.Tensor:
+    if qweight_type == GGML_TYPE_Q4_0_ROCMFP4_FAST:
+        if qweight.ndim != 2:
+            raise ValueError("type-101 weights must be 2D")
+        if qweight.dtype != torch.uint8:
+            raise TypeError("type-101 weights must use uint8")
+        if x.ndim not in (2, 3):
+            raise ValueError("type-101 activations must be 2D or 3D")
+        if x.dtype not in (torch.float16, torch.bfloat16, torch.float32):
+            raise TypeError(
+                "type-101 activations must use float16, bfloat16, or float32"
+            )
+        if qweight.shape[1] % 17:
+            raise ValueError("type-101 packed width must be divisible by 17")
+        hidden_size = qweight.shape[1] // 17 * 32
+        if x.shape[-1] != hidden_size:
+            raise ValueError("type-101 hidden size does not match packed weights")
+        if any(dim <= 0 for dim in (*qweight.shape, *x.shape)):
+            raise ValueError(
+                "type-101 weights and activations must have positive dimensions"
+            )
+        if qweight.device != x.device:
+            raise ValueError(
+                "type-101 weights and activations must use the same device"
+            )
+    if qweight_type == GGML_TYPE_Q4_0_ROCMFP4:
+        if qweight.ndim != 2:
+            raise ValueError("type-100 weights must be 2D")
+        if qweight.dtype != torch.uint8:
+            raise TypeError("type-100 weights must use uint8")
+        if x.ndim not in (2, 3):
+            raise ValueError("type-100 activations must be 2D or 3D")
+        if x.dtype not in (torch.float16, torch.bfloat16, torch.float32):
+            raise TypeError(
+                "type-100 activations must use float16, bfloat16, or float32"
+            )
+        if qweight.shape[1] % 18:
+            raise ValueError("type-100 packed width must be divisible by 18 bytes")
+        hidden_size = qweight.shape[1] // 18 * 32
+        if x.shape[-1] != hidden_size:
+            raise ValueError("type-100 hidden size does not match packed weights")
+        if any(dim <= 0 for dim in (*qweight.shape, *x.shape)):
+            raise ValueError(
+                "type-100 weights and activations must have positive dimensions"
+            )
+        if qweight.device != x.device:
+            raise ValueError(
+                "type-100 weights and activations must use the same device"
+            )
+
+    m = x.numel() // x.shape[-1] if x.ndim and x.shape[-1] else 0
     if qweight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if qweight.shape[0] > 5120 else 16
     else:
         mmvq_safe = 2 if qweight.shape[0] > 5120 else 6
-    if x.shape[0] == 0:
-        return torch.empty(x.shape[0], qweight.shape[0], dtype=x.dtype, device=x.device)
+    if qweight_type == GGML_TYPE_Q8_0_ROCMFPX:
+        if qweight.ndim != 2 or qweight.dtype != torch.uint8:
+            raise ValueError("type-103 weights must be a 2D uint8 packed tensor")
+        if any(dim <= 0 for dim in qweight.shape) or x.ndim == 0 or x.shape[-1] <= 0:
+            raise ValueError("type-103 matmul requires positive packed dimensions")
+        if qweight.shape[1] % 33:
+            raise ValueError(
+                "type-103 packed storage width must be divisible by 33 bytes"
+            )
+        hidden_size = qweight.shape[1] // 33 * 32
+        if x.shape[-1] != hidden_size:
+            raise ValueError("type-103 hidden size does not match packed weights")
+
+    if m == 0:
+        return torch.empty(
+            *x.shape[:-1], qweight.shape[0], dtype=x.dtype, device=x.device
+        )
     if qweight_type in UNQUANTIZED_TYPES:
         return x @ qweight.T
-    if x.shape[0] <= mmvq_safe and qweight_type in MMVQ_QUANT_TYPES:
-        y = ops.ggml_mul_mat_vec_a8(qweight, x, qweight_type, qweight.shape[0])
-    elif qweight_type in MMQ_QUANT_TYPES:
+    if m <= mmvq_safe and qweight_type in MMVQ_QUANT_TYPES:
+        gemv_x = x.reshape(-1, x.shape[-1]) if x.ndim > 2 else x
+        y = ops.ggml_mul_mat_vec_a8(qweight, gemv_x, qweight_type, qweight.shape[0])
+        if x.ndim > 2:
+            y = y.reshape(*x.shape[:-1], qweight.shape[0])
+    elif (
+        (
+            int(qweight_type) in ops.ROCMFPX_GEMM_BLOCK_BYTES
+            and ops._rocmfpx_gfx115x_available(qweight, x)
+        )
+        or (qweight_type == GGML_TYPE_Q4_0_ROCMFP4_FAST and m > mmvq_safe)
+        or qweight_type in MMQ_QUANT_TYPES
+    ):
         y = ops.ggml_mul_mat_a8(qweight, x, qweight_type, qweight.shape[0])
     elif qweight_type in DEQUANT_TYPES:
         shape = gguf_qweight_dequant_shape(
@@ -63,7 +143,7 @@ def _fused_mul_mat_gguf_fake(
     qweight: torch.Tensor,
     qweight_type: int,
 ) -> torch.Tensor:
-    return torch.empty(x.shape[0], qweight.shape[0], dtype=x.dtype, device=x.device)
+    return torch.empty(*x.shape[:-1], qweight.shape[0], dtype=x.dtype, device=x.device)
 
 
 try:
