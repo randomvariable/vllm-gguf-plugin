@@ -1,0 +1,28 @@
+ARG BASE_IMAGE=vllm-strix-devtools:local
+FROM ${BASE_IMAGE}
+
+ENV VLLM_TARGET_DEVICE=rocm \
+    PYTORCH_ROCM_ARCH=gfx1151 \
+    HIP_ARCHITECTURES=gfx1151 \
+    AMDGPU_TARGETS=gfx1151 \
+    VLLM_GGUF_PLUGIN_LOCAL_VERSION_SUFFIX=devtools
+
+WORKDIR /workspace/vllm-gguf-plugin
+COPY . .
+
+# Keep base-image Torch/vLLM; install uv only when the devtools image lacks it.
+RUN if ! command -v uv >/dev/null 2>&1; then \
+        /opt/venv/bin/python -m pip install uv; \
+    fi \
+    && if [ -f /etc/profile.d/vllm-hip-toolchain.sh ]; then \
+        . /etc/profile.d/vllm-hip-toolchain.sh; \
+    fi \
+    && export CPATH="${ROCM_PATH}/include${CPATH:+:${CPATH}}" \
+    && export CPLUS_INCLUDE_PATH="${ROCM_PATH}/include${CPLUS_INCLUDE_PATH:+:${CPLUS_INCLUDE_PATH}}" \
+    && if ! /opt/venv/bin/python -c "import gguf" >/dev/null 2>&1; then \
+        uv pip install --python /opt/venv/bin/python --no-deps gguf; \
+    fi \
+    && uv pip install --python /opt/venv/bin/python --no-build-isolation --no-deps -e . \
+    && /opt/venv/bin/python -c "import torch; import vllm_gguf_plugin.ops as ops; assert hasattr(torch.ops._C_gguf, 'ggml_mul_mat_vec_rocmfp4_fast'); print('gfx1151 plugin smoke test passed')"
+
+CMD ["bash"]
