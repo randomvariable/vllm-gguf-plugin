@@ -20,7 +20,7 @@ from huggingface_hub import hf_hub_download
 from torch import nn
 
 from ... import ops
-from ...ik_types import gguf_qweight_dequant_shape
+from ...ik_types import ROW_PREFIX_GGUF_TYPES, gguf_qweight_dequant_shape
 from ...quantization.utils import UNQUANTIZED_TYPES
 from ...triton.dequantize.interface import ggml_dequantize_triton
 from ...triton.gemm.utils import GGML_TYPE_Q4_0_ROCMFP4_FAST
@@ -129,19 +129,20 @@ def _dense_weight_from_gguf_qweight(
         return qweight
 
     if not qweight.is_cuda:
+        if int(qtype) in ROW_PREFIX_GGUF_TYPES:
+            shape = gguf_qweight_dequant_shape(
+                qweight.shape[0], qweight.shape[1], int(qtype)
+            )
+            return ggml_dequantize_triton(qweight, int(qtype), *shape, torch.float32)
         if int(qtype) == GGML_TYPE_Q4_0_ROCMFP4_FAST:
             shape = gguf_qweight_dequant_shape(
                 qweight.shape[0], qweight.shape[1], int(qtype)
             )
-            return ggml_dequantize_triton(
-                qweight, int(qtype), *shape, torch.float32
-            )
+            return ggml_dequantize_triton(qweight, int(qtype), *shape, torch.float32)
         weight = dequantize(qweight.detach().cpu().numpy(), qtype)
         return torch.from_numpy(weight).to(dtype=torch.float32)
 
-    shape = gguf_qweight_dequant_shape(
-        qweight.shape[0], qweight.shape[1], int(qtype)
-    )
+    shape = gguf_qweight_dequant_shape(qweight.shape[0], qweight.shape[1], int(qtype))
     return ops.ggml_dequantize(qweight, int(qtype), *shape, torch.float32)
 
 
