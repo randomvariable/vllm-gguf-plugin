@@ -7,6 +7,8 @@ from types import MappingProxyType
 from gguf import GGMLQuantizationType as WeightType
 from vllm.logger import init_logger
 
+from ..rocmfpx_types import GGML_TYPE_Q4_0_ROCMFP4_FAST
+
 logger = init_logger(__name__)
 
 
@@ -71,7 +73,10 @@ IMATRIX_QUANT_TYPES = {
     WeightType.IQ4_NL,
 }
 DEQUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
-MMVQ_QUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
+MMVQ_QUANT_TYPES = (
+    STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
+    | {GGML_TYPE_Q4_0_ROCMFP4_FAST}
+)
 MMQ_QUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES
 
 # ROCmFPX custom quantization types (not in standard gguf enum)

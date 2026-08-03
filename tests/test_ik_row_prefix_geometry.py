@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Geometry/shape tests for row-prefix-aware ik_llama IQ KS/KSS/KL storage.
+"""Geometry/shape tests for row-prefix-aware ik_llama IQ KS/KSS/KL/KT storage.
 
 Authoritative ik_llama.cpp ABI for these types:
 
@@ -29,6 +29,10 @@ _AUTHORITATIVE_ABI: dict[int, tuple[int, int, int]] = {
     ik_types.GGML_TYPE_IQ5_KS: (4, 168, 256),
     ik_types.GGML_TYPE_IQ4_KSS: (4, 128, 256),
     ik_types.GGML_TYPE_IQ2_KL: (2, 86, 256),
+    ik_types.GGML_TYPE_IQ1_KT: (4, 56, 256),
+    ik_types.GGML_TYPE_IQ2_KT: (4, 68, 256),
+    ik_types.GGML_TYPE_IQ3_KT: (4, 100, 256),
+    ik_types.GGML_TYPE_IQ4_KT: (4, 128, 256),
 }
 
 _ROW_PREFIX_TYPE_IDS = sorted(_AUTHORITATIVE_ABI)
@@ -68,6 +72,10 @@ def test_row_prefix_block_bytes_equals_prefix_plus_payload(type_id):
         "IQ5_KS": ik_types.IQ5_KS_BLOCK_BYTES,
         "IQ4_KSS": ik_types.IQ4_KSS_BLOCK_BYTES,
         "IQ2_KL": ik_types.IQ2_KL_BLOCK_BYTES,
+        "IQ1_KT": ik_types.IQ1_KT_BLOCK_BYTES,
+        "IQ2_KT": ik_types.IQ2_KT_BLOCK_BYTES,
+        "IQ3_KT": ik_types.IQ3_KT_BLOCK_BYTES,
+        "IQ4_KT": ik_types.IQ4_KT_BLOCK_BYTES,
     }[name]
     assert block_const == row_meta + payload
 
@@ -199,9 +207,7 @@ def test_dequant_gemm_gguf_uses_row_prefix_shape(monkeypatch, type_id):
     "CPU falls to gguf.dequantize which lacks row-prefix types",
 )
 @pytest.mark.parametrize("type_id", _ROW_PREFIX_TYPE_IDS)
-def test_dense_weight_from_gguf_qweight_uses_row_prefix_shape(
-    monkeypatch, type_id
-):
+def test_dense_weight_from_gguf_qweight_uses_row_prefix_shape(monkeypatch, type_id):
     import torch
 
     from vllm_gguf_plugin.weights_adapter.diffusion import loader as diff_loader
@@ -223,9 +229,7 @@ def test_dense_weight_from_gguf_qweight_uses_row_prefix_shape(
 
 
 @pytest.mark.parametrize("type_id", _ROW_PREFIX_TYPE_IDS)
-def test_fused_mul_mat_gguf_dequant_branch_uses_row_prefix_shape(
-    monkeypatch, type_id
-):
+def test_fused_mul_mat_gguf_dequant_branch_uses_row_prefix_shape(monkeypatch, type_id):
     import torch
 
     from vllm_gguf_plugin.quantization import linear as gguf_linear
@@ -241,12 +245,8 @@ def test_fused_mul_mat_gguf_dequant_branch_uses_row_prefix_shape(
     monkeypatch.setattr(ops, "ggml_dequantize", fake)
     monkeypatch.setattr(gguf_linear.ops, "ggml_dequantize", fake)
     # Force the DEQUANT_TYPES fallback branch (not MMVQ/MMQ).
-    monkeypatch.setattr(
-        gguf_linear, "MMVQ_QUANT_TYPES", set(), raising=False
-    )
-    monkeypatch.setattr(
-        gguf_linear, "MMQ_QUANT_TYPES", set(), raising=False
-    )
+    monkeypatch.setattr(gguf_linear, "MMVQ_QUANT_TYPES", set(), raising=False)
+    monkeypatch.setattr(gguf_linear, "MMQ_QUANT_TYPES", set(), raising=False)
 
     gguf_linear._fused_mul_mat_gguf(x, qweight, type_id)
 
