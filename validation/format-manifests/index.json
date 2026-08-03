@@ -1,0 +1,310 @@
+{
+  "schema_version": "0A",
+  "inventory_source": ".slim/deepwork/tests.txt",
+  "expected_inventory_lines": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ],
+  "sample_ids": [
+    "q4-0-rocmfp4-coherent",
+    "q4-0-rocmfp4-fast",
+    "q8-0-rocmfpx-agent",
+    "q6-0-rocmfpx-strix-quality",
+    "q8-0-rocmfpx-strix-agent",
+    "q4-0-rocmfp4-strix-lean",
+    "q3-0-rocmfpx",
+    "tq1-0",
+    "tq2-0",
+    "iq3-kt",
+    "iq4-kt",
+    "mxfp4",
+    "nvfp4"
+  ],
+  "claims": [
+    {
+      "arm_id": "iq3-kt-cpu_reference-cpu-dequantize",
+      "sample_id": "iq3-kt",
+      "inventory_line": 10,
+      "file": "iq3-kt-cpu_reference-cpu-dequantize.json"
+    },
+    {
+      "arm_id": "iq4-kt-cpu_reference-cpu-dequantize",
+      "sample_id": "iq4-kt",
+      "inventory_line": 11,
+      "file": "iq4-kt-cpu_reference-cpu-dequantize.json"
+    },
+    {
+      "arm_id": "mxfp4-cpu_reference-cpu-dequantize",
+      "sample_id": "mxfp4",
+      "inventory_line": 12,
+      "file": "mxfp4-cpu_reference-cpu-dequantize.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm120-dense_linear",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm120-dense_linear.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm120-moe",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm120-moe.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm120-mtp",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm120-mtp.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm121-dense_linear",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm121-dense_linear.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm121-moe",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm121-moe.json"
+    },
+    {
+      "arm_id": "nvfp4-cuda_required-sm121-mtp",
+      "sample_id": "nvfp4",
+      "inventory_line": 13,
+      "file": "nvfp4-cuda_required-sm121-mtp.json"
+    },
+    {
+      "arm_id": "q3-0-rocmfpx-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q3-0-rocmfpx",
+      "inventory_line": 7,
+      "file": "q3-0-rocmfpx-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q3-0-rocmfpx-rocm_required-gfx1151-moe",
+      "sample_id": "q3-0-rocmfpx",
+      "inventory_line": 7,
+      "file": "q3-0-rocmfpx-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q3-0-rocmfpx-rocm_required-gfx1151-mtp",
+      "sample_id": "q3-0-rocmfpx",
+      "inventory_line": 7,
+      "file": "q3-0-rocmfpx-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q4-0-rocmfp4-coherent",
+      "inventory_line": 1,
+      "file": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-moe",
+      "sample_id": "q4-0-rocmfp4-coherent",
+      "inventory_line": 1,
+      "file": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-mtp",
+      "sample_id": "q4-0-rocmfp4-coherent",
+      "inventory_line": 1,
+      "file": "q4-0-rocmfp4-coherent-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-fast-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q4-0-rocmfp4-fast",
+      "inventory_line": 2,
+      "file": "q4-0-rocmfp4-fast-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-fast-rocm_required-gfx1151-moe",
+      "sample_id": "q4-0-rocmfp4-fast",
+      "inventory_line": 2,
+      "file": "q4-0-rocmfp4-fast-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-fast-rocm_required-gfx1151-mtp",
+      "sample_id": "q4-0-rocmfp4-fast",
+      "inventory_line": 2,
+      "file": "q4-0-rocmfp4-fast-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q4-0-rocmfp4-strix-lean",
+      "inventory_line": 6,
+      "file": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe",
+      "sample_id": "q4-0-rocmfp4-strix-lean",
+      "inventory_line": 6,
+      "file": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-mtp",
+      "sample_id": "q4-0-rocmfp4-strix-lean",
+      "inventory_line": 6,
+      "file": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q6-0-rocmfpx-strix-quality",
+      "inventory_line": 4,
+      "file": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-moe",
+      "sample_id": "q6-0-rocmfpx-strix-quality",
+      "inventory_line": 4,
+      "file": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-mtp",
+      "sample_id": "q6-0-rocmfpx-strix-quality",
+      "inventory_line": 4,
+      "file": "q6-0-rocmfpx-strix-quality-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-agent-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q8-0-rocmfpx-agent",
+      "inventory_line": 3,
+      "file": "q8-0-rocmfpx-agent-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-agent-rocm_required-gfx1151-moe",
+      "sample_id": "q8-0-rocmfpx-agent",
+      "inventory_line": 3,
+      "file": "q8-0-rocmfpx-agent-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-agent-rocm_required-gfx1151-mtp",
+      "sample_id": "q8-0-rocmfpx-agent",
+      "inventory_line": 3,
+      "file": "q8-0-rocmfpx-agent-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-dense_linear",
+      "sample_id": "q8-0-rocmfpx-strix-agent",
+      "inventory_line": 5,
+      "file": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-dense_linear.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-moe",
+      "sample_id": "q8-0-rocmfpx-strix-agent",
+      "inventory_line": 5,
+      "file": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-moe.json"
+    },
+    {
+      "arm_id": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-mtp",
+      "sample_id": "q8-0-rocmfpx-strix-agent",
+      "inventory_line": 5,
+      "file": "q8-0-rocmfpx-strix-agent-rocm_required-gfx1151-mtp.json"
+    },
+    {
+      "arm_id": "tq1-0-cpu_reference-cpu-dequantize",
+      "sample_id": "tq1-0",
+      "inventory_line": 8,
+      "file": "tq1-0-cpu_reference-cpu-dequantize.json"
+    },
+    {
+      "arm_id": "tq2-0-cpu_reference-cpu-dequantize",
+      "sample_id": "tq2-0",
+      "inventory_line": 9,
+      "file": "tq2-0-cpu_reference-cpu-dequantize.json"
+    }
+  ],
+  "canonical_arm_id_formula": "sample.sample_id-execution.backend-execution.architecture-execution.operation",
+  "validation_command": ".venv/bin/python -m pytest tests/phase_0a/test_format_manifest_contract.py tests/phase_0a/test_arm_records.py --tb=short -q -r f",
+  "inventory": [
+    {
+      "inventory_line": 1,
+      "label": "Q4_0_ROCMFP4_COHERENT",
+      "source": "https://huggingface.co/maczzinatui/Qwythos-9B-Claude-Mythos-5-1M-MTP-ROCmFP4-COHERENT-GGUF",
+      "sample_id": "q4-0-rocmfp4-coherent"
+    },
+    {
+      "inventory_line": 2,
+      "label": "Q4_0_ROCMFP4_FAST",
+      "source": "https://huggingface.co/maczzinatui/Grug-12B-ROCmFP4_FAST-GGUF",
+      "sample_id": "q4-0-rocmfp4-fast"
+    },
+    {
+      "inventory_line": 3,
+      "label": "Q8_0_ROCMFPX_AGENT",
+      "source": "https://huggingface.co/Hal0ai/hal0-brain-sft-fpx8-agent",
+      "sample_id": "q8-0-rocmfpx-agent"
+    },
+    {
+      "inventory_line": 4,
+      "label": "Q6_0_ROCMFPX_STRIX_QUALITY",
+      "source": "https://huggingface.co/gsrunion/Ornith-1.0-9B-ROCmFPX-GGUF",
+      "sample_id": "q6-0-rocmfpx-strix-quality"
+    },
+    {
+      "inventory_line": 5,
+      "label": "Q8_0_ROCMFPX_AGENT",
+      "source": "https://huggingface.co/gsrunion/Ornith-1.0-9B-ROCmFPX-GGUF",
+      "sample_id": "q8-0-rocmfpx-strix-agent"
+    },
+    {
+      "inventory_line": 6,
+      "label": "Q4_0_ROCMFP4_STRIX_LEAN",
+      "source": "https://huggingface.co/gsrunion/Ornith-1.0-9B-ROCmFPX-GGUF",
+      "sample_id": "q4-0-rocmfp4-strix-lean"
+    },
+    {
+      "inventory_line": 7,
+      "label": "Q3_0_ROCMFPX",
+      "source": "https://huggingface.co/philtheriver/Qwopus3.6-27B-Coder-MTP-ROCmFPX",
+      "sample_id": "q3-0-rocmfpx"
+    },
+    {
+      "inventory_line": 8,
+      "label": "TQ1",
+      "source": "https://huggingface.co/ERNIE-Community/ERNIE-4.5-VL-28B-A3B-Thinking-TQ1_0",
+      "sample_id": "tq1-0"
+    },
+    {
+      "inventory_line": 9,
+      "label": "TQ2",
+      "source": "https://huggingface.co/ewchampion/Ternary-Bonsai-8B-TQ2_0-GGUF",
+      "sample_id": "tq2-0"
+    },
+    {
+      "inventory_line": 10,
+      "label": "IQ3_KT",
+      "source": "https://huggingface.co/Koshkasa/TheDrummer_Skyfall-31B-v4.2_IQ3_KT-GGUF",
+      "sample_id": "iq3-kt"
+    },
+    {
+      "inventory_line": 11,
+      "label": "IQ4_KT",
+      "source": "https://huggingface.co/Thireus/Qwen3-4B-Thinking-2507-THIREUS-IQ4_KT-SPECIAL_SPLIT",
+      "sample_id": "iq4-kt"
+    },
+    {
+      "inventory_line": 12,
+      "label": "MXFP4",
+      "source": "https://huggingface.co/noctrex/Laguna-XS-2.1-MXFP4_MOE-GGUF",
+      "sample_id": "mxfp4"
+    },
+    {
+      "inventory_line": 13,
+      "label": "NVFP4",
+      "source": "https://huggingface.co/s-batman/Ornith-1.0-9B-NVFP4-MTP-GGUF",
+      "sample_id": "nvfp4"
+    }
+  ]
+}

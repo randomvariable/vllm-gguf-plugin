@@ -1,0 +1,969 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "format-manifest.schema.json",
+  "title": "Phase 0A quantization claim arm",
+  "description": "Exactly one sample, ABI/layout, backend and architecture, operation, and requirement per claim arm. Null is unknown, never inferred. Status-dependent fail-closed rules are enforced below.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "arm_id",
+    "sample",
+    "recipe",
+    "quantization",
+    "execution",
+    "fallback_policy",
+    "blocking_reason",
+    "comparator",
+    "evidence",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0A",
+      "type": "string"
+    },
+    "arm_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample": {
+      "$ref": "#/$defs/sample"
+    },
+    "recipe": {
+      "$ref": "#/$defs/recipe"
+    },
+    "quantization": {
+      "$ref": "#/$defs/quantization"
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
+    "fallback_policy": {
+      "$ref": "#/$defs/fallback"
+    },
+    "blocking_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "comparator": {
+      "$ref": "#/$defs/comparator"
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "pending",
+        "blocked",
+        "deferred"
+      ]
+    }
+  },
+  "$defs": {
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "name",
+        "source",
+        "inventory_line"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "inventory_line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name",
+        "source",
+        "values_per_block",
+        "payload_bytes",
+        "scale_bytes",
+        "details"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tensor_abi",
+            "external_recipe",
+            "unknown"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "values_per_block": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "payload_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scale_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "details": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "quantization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "ggml_type_id",
+        "authority",
+        "layout"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ggml_type_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "reference"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "rocmfpx_types.py",
+                "llama_types.py",
+                "ik_types.py",
+                "deferred"
+              ]
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "values_per_block",
+            "payload_bytes",
+            "scale_bytes",
+            "row_prefix_bytes",
+            "row_stride_bytes",
+            "row_stride_formula",
+            "row_stride_semantics"
+          ],
+          "properties": {
+            "values_per_block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "payload_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "scale_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "row_prefix_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "row_stride_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "row_stride_formula": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            },
+            "row_stride_semantics": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "architecture",
+        "operation",
+        "requirement",
+        "envelope"
+      ],
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": [
+            "cpu_reference",
+            "rocm_required",
+            "cuda_required",
+            "cuda_optional"
+          ]
+        },
+        "architecture": {
+          "type": "string",
+          "enum": [
+            "cpu",
+            "gfx1151",
+            "sm120",
+            "sm121"
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "dequantize",
+            "dense_linear",
+            "moe",
+            "mtp",
+            "diffusion"
+          ]
+        },
+        "requirement": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "deferred"
+          ]
+        },
+        "envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shape",
+            "dtype",
+            "batch",
+            "tokens",
+            "tp",
+            "sharding",
+            "toolkit",
+            "runtime"
+          ],
+          "properties": {
+            "shape": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dtype": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "batch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tokens": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tp": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sharding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "toolkit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "runtime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "allowed_outside_envelope",
+        "fail_closed",
+        "reason"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "dense_dequantize",
+            "cpu_reference",
+            "deferred",
+            "blocked"
+          ]
+        },
+        "allowed_outside_envelope": {
+          "type": "boolean"
+        },
+        "fail_closed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "repo_commit",
+        "build",
+        "toolchain",
+        "hardware",
+        "artifact_hash",
+        "recipe",
+        "shape",
+        "tolerance"
+      ],
+      "properties": {
+        "implementation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "repo_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "build": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "toolchain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recipe": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shape": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tolerance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completion_test",
+        "dispatch_proof",
+        "byte_accounting",
+        "temporary_allocation",
+        "occupancy_resources",
+        "independent_reference",
+        "architecture_selection"
+      ],
+      "properties": {
+        "completion_test": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "command",
+            "assertion",
+            "expected_result",
+            "result_state"
+          ],
+          "properties": {
+            "command": {
+              "type": "string",
+              "minLength": 1
+            },
+            "assertion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_result": {
+              "type": "string",
+              "minLength": 1
+            },
+            "result_state": {
+              "type": "string",
+              "enum": [
+                "pass",
+                "fail",
+                "pending",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "dispatch_proof": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "byte_accounting": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "temporary_allocation": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "occupancy_resources": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "independent_reference": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "architecture_selection": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "Universal fail-closed baseline: every arm, regardless of status, must declare fail-closed fallback and forbid dispatch outside the declared envelope. Open fallback states are not representable.",
+      "properties": {
+        "fallback_policy": {
+          "properties": {
+            "fail_closed": {
+              "const": true
+            },
+            "allowed_outside_envelope": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "passed arms must carry complete evidence envelope, complete comparator, blocking_reason=null, non-blocked/non-deferred fallback, and result_state=pass. Every evidence sub-object must be populated.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocking_reason": {
+            "const": null
+          },
+          "fallback_policy": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "none",
+                  "dense_dequantize",
+                  "cpu_reference"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "comparator": {
+            "properties": {
+              "implementation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "repo_commit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "build": {
+                "type": "string",
+                "minLength": 1
+              },
+              "toolchain": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hardware": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_hash": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recipe": {
+                "type": "string",
+                "minLength": 1
+              },
+              "shape": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tolerance": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "implementation",
+              "repo_commit",
+              "build",
+              "toolchain",
+              "hardware",
+              "artifact_hash",
+              "recipe",
+              "shape",
+              "tolerance"
+            ]
+          },
+          "execution": {
+            "properties": {
+              "envelope": {
+                "properties": {
+                  "shape": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dtype": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "batch": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tokens": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tp": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sharding": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "toolkit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "runtime": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "shape",
+                  "dtype",
+                  "batch",
+                  "tokens",
+                  "tp",
+                  "sharding",
+                  "toolkit",
+                  "runtime"
+                ]
+              }
+            }
+          },
+          "evidence": {
+            "properties": {
+              "completion_test": {
+                "properties": {
+                  "result_state": {
+                    "const": "pass"
+                  }
+                }
+              },
+              "dispatch_proof": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "byte_accounting": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "temporary_allocation": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "occupancy_resources": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "independent_reference": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "architecture_selection": {
+                "type": "object",
+                "minProperties": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "blocked arms must declare fallback.mode=blocked, blocking_reason present, and completion result_state=blocked.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "blocked"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocking_reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallback_policy": {
+            "properties": {
+              "mode": {
+                "const": "blocked"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "evidence": {
+            "properties": {
+              "completion_test": {
+                "properties": {
+                  "result_state": {
+                    "const": "blocked"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "deferred arms must declare fallback.mode=deferred, blocking_reason present, and completion result_state=pending.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "deferred"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocking_reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallback_policy": {
+            "properties": {
+              "mode": {
+                "const": "deferred"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "evidence": {
+            "properties": {
+              "completion_test": {
+                "properties": {
+                  "result_state": {
+                    "const": "pending"
+                  }
+                }
+              },
+              "dispatch_proof": { "const": null },
+              "byte_accounting": { "const": null },
+              "temporary_allocation": { "const": null },
+              "occupancy_resources": { "const": null },
+              "independent_reference": { "const": null },
+              "architecture_selection": { "const": null }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "pending arms must declare fallback.mode=blocked; they cannot advertise an open path while still incomplete.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "pending"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "fallback_policy": {
+            "properties": {
+              "mode": {
+                "const": "blocked"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "evidence": {
+            "properties": {
+              "completion_test": {
+                "properties": {
+                  "result_state": {
+                    "const": "pending"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Required arms cannot be deferred or pending; missing implementation must be reported as blocked.",
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "requirement": {
+                "const": "required"
+              }
+            }
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "enum": [
+              "blocked",
+              "passed"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "$comment": "KT-style row-prefix layouts must declare shape-dependent stride semantics; a fixed per-row block size must not be claimed.",
+      "if": {
+        "properties": {
+          "quantization": {
+            "properties": {
+              "layout": {
+                "properties": {
+                  "row_prefix_bytes": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "quantization"
+        ]
+      },
+      "then": {
+        "properties": {
+          "quantization": {
+            "properties": {
+              "layout": {
+                "required": [
+                  "row_stride_formula",
+                  "row_stride_semantics"
+                ],
+                "properties": {
+                  "row_stride_formula": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "row_stride_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

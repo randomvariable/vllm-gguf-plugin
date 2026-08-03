@@ -1,0 +1,85 @@
+{
+  "schema_version": "0A",
+  "arm_id": "mxfp4-cpu_reference-cpu-dequantize",
+  "sample": {
+    "sample_id": "mxfp4",
+    "name": "Laguna-XS-2.1-MXFP4_MOE",
+    "source": "https://huggingface.co/noctrex/Laguna-XS-2.1-MXFP4_MOE-GGUF",
+    "inventory_line": 12
+  },
+  "recipe": {
+    "kind": "unknown",
+    "name": null,
+    "source": null,
+    "values_per_block": null,
+    "payload_bytes": null,
+    "scale_bytes": null,
+    "details": null
+  },
+  "quantization": {
+    "name": "MXFP4",
+    "ggml_type_id": null,
+    "layout": {
+      "row_prefix_bytes": null,
+      "payload_bytes": null,
+      "values_per_block": null,
+      "scale_bytes": null,
+      "row_stride_bytes": null,
+      "row_stride_semantics": null,
+      "row_stride_formula": null
+    },
+    "authority": {
+      "source": "deferred",
+      "reference": "deferred"
+    }
+  },
+  "execution": {
+    "backend": "cpu_reference",
+    "architecture": "cpu",
+    "operation": "dequantize",
+    "requirement": "deferred",
+    "envelope": {
+      "shape": null,
+      "dtype": null,
+      "batch": null,
+      "tokens": null,
+      "tp": null,
+      "sharding": null,
+      "toolkit": null,
+      "runtime": null
+    }
+  },
+  "fallback_policy": {
+    "mode": "deferred",
+    "allowed_outside_envelope": false,
+    "fail_closed": true,
+    "reason": "Reference decode/test path is deferred; arm remains closed to runtime dispatch"
+  },
+  "blocking_reason": "Optional format work is explicitly deferred; ABI or reference evidence is incomplete",
+  "comparator": {
+    "implementation": null,
+    "repo_commit": null,
+    "build": null,
+    "toolchain": null,
+    "hardware": null,
+    "artifact_hash": null,
+    "recipe": null,
+    "shape": null,
+    "tolerance": null
+  },
+  "evidence": {
+    "completion_test": {
+      "command": ".venv/bin/python -m pytest tests/phase_0a/test_arm_records.py::test_arm_enforces_blocked_or_deferred_contract[mxfp4-cpu_reference-cpu-dequantize]",
+      "assertion": "mxfp4-cpu_reference-cpu-dequantize: gate reports the deferred dequantize arm with status=deferred, non-null blocking_reason, and every comparator/evidence field null",
+      "expected_result": "pytest reports mxfp4-cpu_reference-cpu-dequantize as deferred with result_state=pending and no comparator or evidence populated",
+      "result_state": "pending"
+    },
+    "dispatch_proof": null,
+    "byte_accounting": null,
+    "temporary_allocation": null,
+    "occupancy_resources": null,
+    "independent_reference": null,
+    "architecture_selection": null
+  },
+  "status": "deferred"
+}

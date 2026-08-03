@@ -1,0 +1,85 @@
+{
+  "schema_version": "0A",
+  "arm_id": "nvfp4-cuda_required-sm121-mtp",
+  "sample": {
+    "sample_id": "nvfp4",
+    "name": "Ornith-1.0-9B-NVFP4-MTP",
+    "source": "https://huggingface.co/s-batman/Ornith-1.0-9B-NVFP4-MTP-GGUF",
+    "inventory_line": 13
+  },
+  "recipe": {
+    "kind": "unknown",
+    "name": null,
+    "source": null,
+    "values_per_block": null,
+    "payload_bytes": null,
+    "scale_bytes": null,
+    "details": null
+  },
+  "quantization": {
+    "name": "NVFP4",
+    "ggml_type_id": null,
+    "layout": {
+      "row_prefix_bytes": null,
+      "payload_bytes": null,
+      "values_per_block": null,
+      "scale_bytes": null,
+      "row_stride_bytes": null,
+      "row_stride_semantics": null,
+      "row_stride_formula": null
+    },
+    "authority": {
+      "source": "deferred",
+      "reference": "deferred"
+    }
+  },
+  "execution": {
+    "backend": "cuda_required",
+    "architecture": "sm121",
+    "operation": "mtp",
+    "requirement": "required",
+    "envelope": {
+      "shape": null,
+      "dtype": null,
+      "batch": null,
+      "tokens": null,
+      "tp": null,
+      "sharding": null,
+      "toolkit": null,
+      "runtime": null
+    }
+  },
+  "fallback_policy": {
+    "mode": "blocked",
+    "allowed_outside_envelope": false,
+    "fail_closed": true,
+    "reason": "No implementation or declared fallback for this arm; runtime must not dispatch"
+  },
+  "blocking_reason": "NVFP4 implementation, companion-scale loader, and Blackwell kernel are missing",
+  "comparator": {
+    "implementation": null,
+    "repo_commit": null,
+    "build": null,
+    "toolchain": null,
+    "hardware": null,
+    "artifact_hash": null,
+    "recipe": null,
+    "shape": null,
+    "tolerance": null
+  },
+  "evidence": {
+    "completion_test": {
+      "command": ".venv/bin/python -m pytest tests/phase_0a/test_arm_records.py::test_arm_enforces_blocked_or_deferred_contract[nvfp4-cuda_required-sm121-mtp]",
+      "assertion": "nvfp4-cuda_required-sm121-mtp: gate reports the blocked mtp arm with status=blocked, fail-closed fallback, non-null blocking_reason, and every comparator/evidence field null",
+      "expected_result": "pytest reports nvfp4-cuda_required-sm121-mtp as blocked with result_state=blocked and no comparator or evidence populated",
+      "result_state": "blocked"
+    },
+    "dispatch_proof": null,
+    "byte_accounting": null,
+    "temporary_allocation": null,
+    "occupancy_resources": null,
+    "independent_reference": null,
+    "architecture_selection": null
+  },
+  "status": "blocked"
+}

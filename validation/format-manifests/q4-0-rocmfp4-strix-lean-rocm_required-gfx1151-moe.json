@@ -1,0 +1,85 @@
+{
+  "schema_version": "0A",
+  "arm_id": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe",
+  "sample": {
+    "sample_id": "q4-0-rocmfp4-strix-lean",
+    "name": "Ornith-1.0-9B",
+    "source": "https://huggingface.co/gsrunion/Ornith-1.0-9B-ROCmFPX-GGUF",
+    "inventory_line": 6
+  },
+  "recipe": {
+    "kind": "external_recipe",
+    "name": "Q4_0_ROCMFP4",
+    "source": "vllm_gguf_plugin/rocmfpx_types.py",
+    "values_per_block": 32,
+    "payload_bytes": 16,
+    "scale_bytes": 2,
+    "details": "Repository ROCmFPX type recipe; not a model-author tensor ABI claim"
+  },
+  "quantization": {
+    "name": "Q4_0_ROCMFP4",
+    "ggml_type_id": 100,
+    "layout": {
+      "row_prefix_bytes": 0,
+      "payload_bytes": 16,
+      "values_per_block": 32,
+      "scale_bytes": 2,
+      "row_stride_bytes": 18,
+      "row_stride_semantics": "single fixed-size quantization block; row prefix is zero",
+      "row_stride_formula": "payload_bytes + scale_bytes"
+    },
+    "authority": {
+      "source": "rocmfpx_types.py",
+      "reference": "vllm_gguf_plugin/rocmfpx_types.py"
+    }
+  },
+  "execution": {
+    "backend": "rocm_required",
+    "architecture": "gfx1151",
+    "operation": "moe",
+    "requirement": "required",
+    "envelope": {
+      "shape": null,
+      "dtype": null,
+      "batch": null,
+      "tokens": null,
+      "tp": null,
+      "sharding": null,
+      "toolkit": null,
+      "runtime": null
+    }
+  },
+  "fallback_policy": {
+    "mode": "blocked",
+    "allowed_outside_envelope": false,
+    "fail_closed": true,
+    "reason": "No implementation or declared fallback for this arm; runtime must not dispatch"
+  },
+  "blocking_reason": "ROCmFPX fused implementation and comparator evidence are missing",
+  "comparator": {
+    "implementation": null,
+    "repo_commit": null,
+    "build": null,
+    "toolchain": null,
+    "hardware": null,
+    "artifact_hash": null,
+    "recipe": null,
+    "shape": null,
+    "tolerance": null
+  },
+  "evidence": {
+    "completion_test": {
+      "command": ".venv/bin/python -m pytest tests/phase_0a/test_arm_records.py::test_arm_enforces_blocked_or_deferred_contract[q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe]",
+      "assertion": "q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe: gate reports the blocked moe arm with status=blocked, fail-closed fallback, non-null blocking_reason, and every comparator/evidence field null",
+      "expected_result": "pytest reports q4-0-rocmfp4-strix-lean-rocm_required-gfx1151-moe as blocked with result_state=blocked and no comparator or evidence populated",
+      "result_state": "blocked"
+    },
+    "dispatch_proof": null,
+    "byte_accounting": null,
+    "temporary_allocation": null,
+    "occupancy_resources": null,
+    "independent_reference": null,
+    "architecture_selection": null
+  },
+  "status": "blocked"
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": "0A",
+  "arm_id": "iq3-kt-cpu_reference-cpu-dequantize",
+  "sample": {
+    "sample_id": "iq3-kt",
+    "name": "TheDrummer_Skyfall-31B-v4.2",
+    "source": "https://huggingface.co/Koshkasa/TheDrummer_Skyfall-31B-v4.2_IQ3_KT-GGUF",
+    "inventory_line": 10
+  },
+  "recipe": {
+    "kind": "tensor_abi",
+    "name": "IQ3_KT",
+    "source": "vllm_gguf_plugin/ik_types.py",
+    "values_per_block": 256,
+    "payload_bytes": 100,
+    "scale_bytes": null,
+    "details": null
+  },
+  "quantization": {
+    "name": "IQ3_KT",
+    "ggml_type_id": 154,
+    "layout": {
+      "row_prefix_bytes": 4,
+      "payload_bytes": 100,
+      "values_per_block": 256,
+      "scale_bytes": null,
+      "row_stride_bytes": null,
+      "row_stride_semantics": "shape-dependent multi-block row; 4-byte FP32 prefix precedes payload",
+      "row_stride_formula": "row_prefix_bytes + blocks_per_row * payload_bytes"
+    },
+    "authority": {
+      "source": "ik_types.py",
+      "reference": "vllm_gguf_plugin/ik_types.py"
+    }
+  },
+  "execution": {
+    "backend": "cpu_reference",
+    "architecture": "cpu",
+    "operation": "dequantize",
+    "requirement": "deferred",
+    "envelope": {
+      "shape": null,
+      "dtype": null,
+      "batch": null,
+      "tokens": null,
+      "tp": null,
+      "sharding": null,
+      "toolkit": null,
+      "runtime": null
+    }
+  },
+  "fallback_policy": {
+    "mode": "deferred",
+    "allowed_outside_envelope": false,
+    "fail_closed": true,
+    "reason": "Reference decode/test path is deferred; arm remains closed to runtime dispatch"
+  },
+  "blocking_reason": "Optional format work is explicitly deferred; ABI or reference evidence is incomplete",
+  "comparator": {
+    "implementation": null,
+    "repo_commit": null,
+    "build": null,
+    "toolchain": null,
+    "hardware": null,
+    "artifact_hash": null,
+    "recipe": null,
+    "shape": null,
+    "tolerance": null
+  },
+  "evidence": {
+    "completion_test": {
+      "command": ".venv/bin/python -m pytest tests/phase_0a/test_arm_records.py::test_arm_enforces_blocked_or_deferred_contract[iq3-kt-cpu_reference-cpu-dequantize]",
+      "assertion": "iq3-kt-cpu_reference-cpu-dequantize: gate reports the deferred dequantize arm with status=deferred, non-null blocking_reason, and every comparator/evidence field null",
+      "expected_result": "pytest reports iq3-kt-cpu_reference-cpu-dequantize as deferred with result_state=pending and no comparator or evidence populated",
+      "result_state": "pending"
+    },
+    "dispatch_proof": null,
+    "byte_accounting": null,
+    "temporary_allocation": null,
+    "occupancy_resources": null,
+    "independent_reference": null,
+    "architecture_selection": null
+  },
+  "status": "deferred"
+}

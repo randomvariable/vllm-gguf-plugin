@@ -1,0 +1,85 @@
+{
+  "schema_version": "0A",
+  "arm_id": "tq1-0-cpu_reference-cpu-dequantize",
+  "sample": {
+    "sample_id": "tq1-0",
+    "name": "ERNIE-4.5-VL-28B-A3B-Thinking",
+    "source": "https://huggingface.co/ERNIE-Community/ERNIE-4.5-VL-28B-A3B-Thinking-TQ1_0",
+    "inventory_line": 8
+  },
+  "recipe": {
+    "kind": "tensor_abi",
+    "name": "TQ1_0",
+    "source": "vllm_gguf_plugin/llama_types.py",
+    "values_per_block": 256,
+    "payload_bytes": 54,
+    "scale_bytes": null,
+    "details": null
+  },
+  "quantization": {
+    "name": "TQ1_0",
+    "ggml_type_id": 34,
+    "layout": {
+      "row_prefix_bytes": 0,
+      "payload_bytes": 54,
+      "values_per_block": 256,
+      "scale_bytes": null,
+      "row_stride_bytes": 54,
+      "row_stride_semantics": "single fixed-size quantization block; row prefix is zero",
+      "row_stride_formula": "payload_bytes + scale_bytes"
+    },
+    "authority": {
+      "source": "llama_types.py",
+      "reference": "vllm_gguf_plugin/llama_types.py"
+    }
+  },
+  "execution": {
+    "backend": "cpu_reference",
+    "architecture": "cpu",
+    "operation": "dequantize",
+    "requirement": "deferred",
+    "envelope": {
+      "shape": null,
+      "dtype": null,
+      "batch": null,
+      "tokens": null,
+      "tp": null,
+      "sharding": null,
+      "toolkit": null,
+      "runtime": null
+    }
+  },
+  "fallback_policy": {
+    "mode": "deferred",
+    "allowed_outside_envelope": false,
+    "fail_closed": true,
+    "reason": "Reference decode/test path is deferred; arm remains closed to runtime dispatch"
+  },
+  "blocking_reason": "Optional format work is explicitly deferred; ABI or reference evidence is incomplete",
+  "comparator": {
+    "implementation": null,
+    "repo_commit": null,
+    "build": null,
+    "toolchain": null,
+    "hardware": null,
+    "artifact_hash": null,
+    "recipe": null,
+    "shape": null,
+    "tolerance": null
+  },
+  "evidence": {
+    "completion_test": {
+      "command": ".venv/bin/python -m pytest tests/phase_0a/test_arm_records.py::test_arm_enforces_blocked_or_deferred_contract[tq1-0-cpu_reference-cpu-dequantize]",
+      "assertion": "tq1-0-cpu_reference-cpu-dequantize: gate reports the deferred dequantize arm with status=deferred, non-null blocking_reason, and every comparator/evidence field null",
+      "expected_result": "pytest reports tq1-0-cpu_reference-cpu-dequantize as deferred with result_state=pending and no comparator or evidence populated",
+      "result_state": "pending"
+    },
+    "dispatch_proof": null,
+    "byte_accounting": null,
+    "temporary_allocation": null,
+    "occupancy_resources": null,
+    "independent_reference": null,
+    "architecture_selection": null
+  },
+  "status": "deferred"
+}

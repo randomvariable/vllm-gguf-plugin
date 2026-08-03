@@ -1,0 +1,490 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "artifact_hash",
+    "side",
+    "comparator",
+    "provenance",
+    "envelope",
+    "arm",
+    "facts",
+    "compiler_resources",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0B.1"
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "side": {
+      "enum": [
+        "plugin",
+        "comparator"
+      ]
+    },
+    "comparator": {
+      "$ref": "#/$defs/comparator"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "envelope": {
+      "$ref": "#/$defs/envelope"
+    },
+    "arm": {
+      "$ref": "#/$defs/arm"
+    },
+    "facts": {
+      "$ref": "#/$defs/facts"
+    },
+    "compiler_resources": {
+      "$ref": "#/$defs/resources"
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "semantic": {
+      "$ref": "#/$defs/semantic"
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "line",
+        "column",
+        "symbol_id"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "symbol_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "artifact_id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rocmfpx_model_author_fork",
+            "nvfp4_upstream_llama_cpp"
+          ]
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo_url",
+        "commit_sha",
+        "source_tree_sha256",
+        "extractor_version"
+      ],
+      "properties": {
+        "repo_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "source_tree_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "extractor_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "envelope_id",
+        "side",
+        "format",
+        "operation",
+        "dtype",
+        "architecture",
+        "sharding",
+        "moe",
+        "mtp"
+      ],
+      "properties": {
+        "envelope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "side": {
+          "enum": [
+            "plugin",
+            "comparator"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dtype": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sharding": {
+          "type": "object"
+        },
+        "moe": {
+          "type": "object"
+        },
+        "mtp": {
+          "type": "object"
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_symbol_id",
+        "selected_symbol_location",
+        "terminal",
+        "fail_closed"
+      ],
+      "properties": {
+        "selected_symbol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selected_symbol_location": {
+          "$ref": "#/$defs/location"
+        },
+        "terminal": {
+          "enum": [
+            "selected",
+            "blocked",
+            "unsupported"
+          ]
+        },
+        "fail_closed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "arm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arm_id",
+        "envelope_id",
+        "side",
+        "decision"
+      ],
+      "properties": {
+        "arm_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "side": {
+          "enum": [
+            "plugin",
+            "comparator"
+          ]
+        },
+        "decision": {
+          "$ref": "#/$defs/decision"
+        }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "mapping": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        }
+      }
+    },
+    "read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "bytes",
+        "location"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        }
+      }
+    },
+    "formula": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "formula",
+        "location"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "created",
+        "bytes",
+        "location"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "dense_weight_temporary",
+            "dense_materialization",
+            "activation",
+            "output_accumulation",
+            "contiguous_copy",
+            "concatenation"
+          ]
+        },
+        "created": {
+          "type": "boolean"
+        },
+        "bytes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "classification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lifetime": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch",
+        "storage_reads",
+        "scale_flow",
+        "byte_formulas",
+        "allocations",
+        "mapping"
+      ],
+      "properties": {
+        "dispatch": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "storage_reads": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/read"
+          }
+        },
+        "scale_flow": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "byte_formulas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/formula"
+          }
+        },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        },
+        "mapping": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "reason"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "semantic": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(registers_per_thread|shared_memory_bytes|warp_size|lds_bytes)$": {
+          "$ref": "#/$defs/resource"
+        }
+      },
+      "minProperties": 1
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "limitations",
+        "evidence"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "captured",
+            "blocked",
+            "unsupported"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
