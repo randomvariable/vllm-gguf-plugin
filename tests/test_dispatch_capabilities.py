@@ -11,22 +11,16 @@ def test_rocmfpx_native_dispatch_capabilities_are_fail_closed():
 
 def test_custom_dispatch_capabilities_are_truthful():
     custom_ids = {
-        34,
-        35,
-        36,
-        41,
-        42,
-        100,
-        101,
-        102,
-        103,
-        104,
-        107,
-        *range(133, 159),
+        136,
+        142,
+        143,
+        147,
+        148,
+        149,
+        150,
+        151,
     }
     portable_dequant_ids = {
-        34,
-        35,
         36,
         41,
         42,
