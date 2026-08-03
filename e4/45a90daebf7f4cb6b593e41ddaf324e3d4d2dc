@@ -1,0 +1,180 @@
+tests/test_rocmfp4_fast_triton_gemm.py
+  s_944fc721b513e9::t_3b491e246ba490 173,187-188,218-219,221-239
+  s_896a95b660e982::t_ec32f68350d346 2,4,6-39,43,47-73,75-84,88,94-108,112-115,117-126,145-151,153-162,164-165,174,180-183,240-302,306-316,323-329
+  s_896a95b660e982::t_e822b632214f1b 5,89-93,152,163,330
+  s_a35c62a3e8a532::t_90c8bc755bb7b0 41,175-179,201-205,320-322
+  s_5b48b91aefc7e2::t_ae57d7ec017b3f 3,393
+  s_310667dd440eef::t_bf84b6ab01e50e 40,42,44-46,85-87,109-111,127-129,166-168,184-186,189-191,303-305,317-319
+  s_bcd14357270837::t_b59a94249c8a11 1,116
+  s_bcd14357270837::t_7c2392355d1dc0 192-200,209-217
+  s_bcd14357270837::t_f7abdee63fab1b 206-208
+  s_bcd14357270837::t_56b8765ff47f6e 74,220
+  s_5b48b91aefc7e2::t_687bfe6f9a3014 169-172,331-392,394-405
+  s_64c2ed5716b13f::t_f12b09f07cf3e7 130-144
+tests/test_type101_dense_gemm_contract_gaps.py
+  s_6e5dd6c1c9b7cf::t_57bb06fb8250ca 1-38,42-66,70-93
+  s_65be93499063cf::t_62233941df4f5e 39-41,67-69
+tests/test_type101_public_dense_gemm_dispatch.py
+  s_65be93499063cf::t_62233941df4f5e 69,178
+  s_725ca0bc872744::t_db271b764cd09b 50-68,70-74,173-177,179-182
+  s_0b46d32cd629ac::t_c35a22e9be6fcb 12-13
+  s_b903085e570bb0::t_34ca1cb3e42a69 75-172
+  s_0b46d32cd629ac::t_9f441dea496a29 1-11,14-49,183-258
+tests/test_rocmfp4_fast_fused_gemv.py
+  s_e67da3fe450f6b::t_2ba17c5d811f36 45-75
+  s_2438679d2e7a8c::t_1de9e6989613e3 2
+  s_6145e5d9c7b03f::t_e3fcf0452f6427 5
+  s_00e47eb3d30038::t_6ef527b6ba9620 103-132
+  s_68dd0416ae9756::t_46da5cd4d3db50 3-4,6-38,41-44,76-102
+  s_2438679d2e7a8c::t_8becc39963707b 1,133-148
+  s_6145e5d9c7b03f::t_466603e6aa8709 39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "e445a90daebf7f4cb6b593e41ddaf324e3d4d2dc",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_00e47eb3d30038": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03842d9a4ffeBeH7IHDzhJyo0d",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_0b46d32cd629ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037d7c731ffe9gu2XuHfOyxCDP",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_2438679d2e7a8c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0382e9cbeffe2TZzkIEuc5rAPr",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_310667dd440eef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037ec1f32ffel8dFsIAYUVI3Qr",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_5b48b91aefc7e2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037e819bdffe4INsHtfHcikUCh",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_6145e5d9c7b03f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0384e4472ffeOdwd0S9Y4HEsQS",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_64c2ed5716b13f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037b74cf1ffeAiLCkG63X1u0D4",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_65be93499063cf": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_036c28484ffebsKkvFgsJCgSmz",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_68dd0416ae9756": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0386863ffffe2kjrsK7PFPu6qM",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_6e5dd6c1c9b7cf": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_036cc846fffe0pDyDp765gMQrR",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_725ca0bc872744": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037c32ac1ffeWbWfXMZrwse7w5",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_896a95b660e982": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0380d4b1bffeDiHqiHnJwMcRu1",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_944fc721b513e9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037f84b31ffeYxsL56f5D7LEwr",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_b903085e570bb0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_036bfa995ffezxx40S4B7EiXQh",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_bcd14357270837": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_037aa42c0ffe0eCaJ2rNC2DB8y",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_e67da3fe450f6b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03835ad3fffePb9VLACvt3JNxO",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    }
+  }
+}
