@@ -1,0 +1,74 @@
+README.md
+  s_6b051b86b01124::t_b358822435cb9d 31
+  s_a35c62a3e8a532::t_4c8dfd1e772f25 105-110
+  s_a6437579be694f::t_5e0fd9ee847580 130-134
+  s_a6437579be694f::t_20b2740d24763c 1,3-5,8-26,30,42,45-73,75-101,111-129,135-150,154,159,188-189,197-201
+  s_0ee3cf3dd17485::t_67cafe5e1a54de 38
+  s_053e1bf79e0fcc::t_77e9389fe4e6ca 175,179
+  s_053e1bf79e0fcc::t_cbf590d981b4e3 165-174,181-184
+  s_a35c62a3e8a532::t_f1ebe04dc72174 32-37,74
+  s_79083bfdc8d740::t_b43259f8b462de 102-104
+  s_053e1bf79e0fcc::t_4bd8979e79c25a 176-178
+  s_a35c62a3e8a532::t_76b0388c6b08c6 180,185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "499721293650a9ad15d2a30786a8aaf787e4ae2e",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_053e1bf79e0fcc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03794962cfferGOpmBnozZeB6x",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_0ee3cf3dd17485": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03837120affe5gkrO8UIItod4q",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_6b051b86b01124": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03758e357ffeJPMQ6Ohnw420H0",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_79083bfdc8d740": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0381bf5a0ffeH7KNnwZ6Lm7hsq",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_a6437579be694f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03bc2c530ffeuOSNuZwvfxKBDL",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    }
+  }
+}
