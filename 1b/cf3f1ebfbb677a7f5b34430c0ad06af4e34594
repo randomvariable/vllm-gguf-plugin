@@ -1,0 +1,34 @@
+vllm_gguf_plugin/weights_adapter/diffusion/loader.py
+  s_971810e74ad337::t_27d0c4e7463ee5 141,145
+  s_971810e74ad337::t_4d73ab65136beb 23,132,136
+  s_a35c62a3e8a532::t_07c1ca0b9546a6 137-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "1bcf3f1ebfbb677a7f5b34430c0ad06af4e34594",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_971810e74ad337": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03da8f67effekmuJCpqIAV0zkp",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
