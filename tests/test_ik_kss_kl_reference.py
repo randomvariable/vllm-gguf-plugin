@@ -38,7 +38,7 @@ def test_iq4_kss_packs_low_bits_by_position():
     out = dequantize_iq4_kss_reference(raw, 1, 256, torch.float32)
 
     # ls=5 selects the second codebook half and scale -123.
-    assert torch.equal(out[0, :16], torch.full((16,), 15621.0))
+    assert torch.equal(out[0, :16], torch.full((16,), 15129.0))
 
 
 def test_iq2_kl_reconstructs_scale_packing_and_pair_codebook():
@@ -69,6 +69,26 @@ def test_reference_requires_contiguous_storage_and_registers_types():
     with pytest.raises(ValueError, match="contiguous"):
         dequantize_iq4_kss_reference(raw, 1, 256)
     assert set(REFERENCE_DECODERS) == {146, 157}
+
+
+@pytest.mark.parametrize(
+    "decoder, prefix, payload",
+    [
+        (dequantize_iq4_kss_reference, 4, 128),
+        (dequantize_iq2_kl_reference, 2, 86),
+    ],
+)
+def test_row_prefix_broadcasts_across_many_blocks(decoder, prefix, payload):
+    rows = 3
+    blocks_per_row = 16
+    raw = torch.zeros(
+        rows * (prefix + blocks_per_row * payload), dtype=torch.uint8
+    )
+
+    output = decoder(raw, rows, blocks_per_row * 256, torch.float32)
+
+    assert output.shape == (rows, blocks_per_row * 256)
+    assert torch.isfinite(output).all()
 
 
 @given(st.integers(min_value=1, max_value=3))

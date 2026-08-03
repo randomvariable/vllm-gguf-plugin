@@ -33,6 +33,7 @@ from .ik_k56_reference import REFERENCE_DECODERS as K56_REFERENCE_DECODERS
 from .ik_k234_reference import REFERENCE_DECODERS as K234_REFERENCE_DECODERS
 from .ik_ks_reference import REFERENCE_DECODERS as KS_REFERENCE_DECODERS
 from .ik_kss_kl_reference import REFERENCE_DECODERS as KSS_KL_REFERENCE_DECODERS
+from .ik_kt_reference import REFERENCE_DECODERS as KT_REFERENCE_DECODERS
 from .ik_reference import REFERENCE_DECODERS as IK_REFERENCE_DECODERS
 from .iq_quant import (
     ggml_dequantize_iq1_m_triton,
@@ -68,6 +69,7 @@ REFERENCE_DECODERS = {
     **K56_REFERENCE_DECODERS,
     **KS_REFERENCE_DECODERS,
     **KSS_KL_REFERENCE_DECODERS,
+    **KT_REFERENCE_DECODERS,
 }
 
 
@@ -128,10 +130,9 @@ def _dequantize_rocmfpx_reference(
         low = codebook[qs & 0x0F]
         high = codebook[qs >> 4]
         if int(quant_type) == 100:
-            # Blocks store all low nibbles, followed by all high nibbles.
-            values = torch.cat((low, high), dim=1)
+            # Type 100 stores contiguous low/high output halves.
             scale = _rocmfpx_scale(raw[:, 16:18])
-            output = values * scale.repeat_interleave(16, dim=1)
+            output = torch.cat((low * scale[:, 0:1], high * scale[:, 1:2]), dim=1)
         else:
             values = torch.cat((low, high), dim=1)
             scale = _rocmfpx_scale(raw[:, 16:17])

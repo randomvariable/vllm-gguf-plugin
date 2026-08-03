@@ -148,28 +148,38 @@ def _table(values: tuple[int, ...], device: torch.device) -> torch.Tensor:
 
 def dequantize_iq2_ks_reference(W, m, n, dtype=None):
     rows, blocks = _rows(W, m, n, QK_IQ2_KS, 2, 70)
-    scale = rows[:, :2].contiguous().view(torch.float16).float()
+    scale = rows[:, :2].contiguous().view(torch.float16).float().reshape(m)
     data = rows[:, 2:].reshape(m, blocks, 70)
-    extra = data[:, :, :2].contiguous().view(torch.int16).to(torch.int32)
+    extra = data[:, :, :2].contiguous().view(torch.int16).to(torch.int32).squeeze(-1)
     scales, qs = data[:, :, 2:6], data[:, :, 6:]
     out = torch.empty((m, blocks, 256), dtype=torch.float32, device=W.device)
     values = _table(_IQ2_VALUES, W.device)
     for ib in range(4):
         ex = extra >> (2 * ib)
-        dl1 = scale[:, None] * (((scales[:, :, ib] & 15) | ((ex >> 4) & 16)) - 16)
-        dl2 = scale[:, None] * (((scales[:, :, ib] >> 4) | ((ex >> 5) & 16)) - 16)
+        dl1 = scale[:, None] * (
+            ((scales[:, :, ib] & 15) | ((ex >> 4) & 16)) - 16
+        )
+        dl2 = scale[:, None] * (
+            ((scales[:, :, ib] >> 4) | ((ex >> 5) & 16)) - 16
+        )
         q = qs[:, :, 32 * (ib // 2) : 32 * (ib // 2) + 32].to(torch.int32)
         shift = 4 * (ib & 1)
-        out[:, :, 64 * ib : 64 * ib + 32] = dl1[:, :, None] * values[(q >> shift) & 3]
+        out[:, :, 64 * ib : 64 * ib + 32] = dl1[:, :, None] * values[
+            4 * (ex & 1)[:, :, None] + ((q >> shift) & 3)
+        ]
         out[:, :, 64 * ib + 32 : 64 * ib + 64] = (
-            dl2[:, :, None] * values[(q >> (shift + 2)) & 3]
+            dl2[:, :, None]
+            * values[
+                4 * ((ex >> 1) & 1)[:, :, None]
+                + ((q >> (shift + 2)) & 3)
+            ]
         )
     return out.reshape(m, n).to(dtype or torch.float16)
 
 
 def dequantize_iq3_ks_reference(W, m, n, dtype=None):
     rows, blocks = _rows(W, m, n, QK_IQ3_KS, 2, 102)
-    scale = rows[:, :2].contiguous().view(torch.float16).float()
+    scale = rows[:, :2].contiguous().view(torch.float16).float().reshape(m)
     data = rows[:, 2:].reshape(m, blocks, 102)
     extra = data[:, :, :2].contiguous().view(torch.int16).to(torch.int32)
     scales, qs, qh = data[:, :, 2:6], data[:, :, 6:70], data[:, :, 70:]
@@ -178,21 +188,23 @@ def dequantize_iq3_ks_reference(W, m, n, dtype=None):
     for ib in range(8):
         j = ib & 3
         sc = (scales[:, :, j] >> (4 if ib >= 4 else 0)) & 15
-        sc |= ((extra >> (j + (4 if ib >= 4 else 0))) & 1) << 4
-        cb = ((extra >> (8 + ib)) & 1) * 8
+        sc |= ((extra >> (j + (4 if ib >= 4 else 0))) & 1).squeeze(-1) << 4
+        cb = (((extra >> (8 + ib)) & 1) * 8).squeeze(-1)
         q = qs[:, :, 32 * (ib // 4) : 32 * (ib // 4) + 32].to(torch.int32)
         code = ((q >> (2 * (ib & 3))) & 3) | (
             ((qh[:, :, :32] >> (4 * (ib // 4) + (ib & 3))) & 1) << 2
         )
         out[:, :, 32 * ib : 32 * ib + 32] = (
-            scale[:, :, None] * (sc[:, :, None] - 16) * values[code + cb[:, :, None]]
+            scale[:, None, None]
+            * (sc[:, :, None] - 16)
+            * values[code + cb[:, :, None]]
         )
     return out.reshape(m, n).to(dtype or torch.float16)
 
 
 def dequantize_iq4_ks_reference(W, m, n, dtype=None):
     rows, blocks = _rows(W, m, n, QK_IQ4_KS, 4, 136)
-    scale = rows[:, :4].contiguous().view(torch.float32)
+    scale = rows[:, :4].contiguous().view(torch.float32).reshape(m)
     data = rows[:, 4:].reshape(m, blocks, 136)
     scales, qs = data[:, :, :8], data[:, :, 8:]
     out = torch.empty((m, blocks, 256), dtype=torch.float32, device=W.device)
@@ -213,7 +225,7 @@ def dequantize_iq4_ks_reference(W, m, n, dtype=None):
 
 def dequantize_iq5_ks_reference(W, m, n, dtype=None):
     rows, blocks = _rows(W, m, n, QK_IQ5_KS, 4, 168)
-    scale = rows[:, :4].contiguous().view(torch.float32)
+    scale = rows[:, :4].contiguous().view(torch.float32).reshape(m)
     data = rows[:, 4:].reshape(m, blocks, 168)
     scales, qs, qh = data[:, :, :8], data[:, :, 8:136], data[:, :, 136:]
     out = torch.empty((m, blocks, 256), dtype=torch.float32, device=W.device)

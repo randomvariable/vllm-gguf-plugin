@@ -90,8 +90,10 @@ def dequantize_iq2_k_reference(
         codes = (packed >> shift) & 3
         codebook = (extra >> (2 * ib)) & 3
         table = _IQ2NL_VALUES.to(W.device)
-        first = table[((codebook & 1) * 4)[:, None] + codes[:, :16]]
-        second = table[((codebook >> 1) * 4)[:, None] + codes[:, 16:]]
+        first_indices = ((codebook & 1) * 4)[:, None] + codes[:, :16]
+        second_indices = ((codebook >> 1) * 4)[:, None] + codes[:, 16:]
+        first = table[first_indices.long()]
+        second = table[second_indices.long()]
         scale = torch.stack(((scales[:, ib] & 15) - 8, (scales[:, ib] >> 4) - 8), dim=1)
         values.append(
             torch.cat((first * scale[:, 0, None], second * scale[:, 1, None]), dim=1)
@@ -116,8 +118,10 @@ def dequantize_iq3_k_reference(
         high = (qh >> ib) & 1
         codes = low | (high << 2)
         book = (extra >> (2 * ib)) & 3
-        first = table[((book & 1) * 8)[:, None] + codes[:, :16]]
-        second = table[((book >> 1) * 8)[:, None] + codes[:, 16:]]
+        first_indices = ((book & 1) * 8)[:, None] + codes[:, :16]
+        second_indices = ((book >> 1) * 8)[:, None] + codes[:, 16:]
+        first = table[first_indices.long()]
+        second = table[second_indices.long()]
         sh = scales_h >> (2 * ib)
         s1 = (2 * (scales_l[:, ib] & 15) + 1) * torch.where((sh & 1) != 0, -1, 1)
         s2 = (2 * (scales_l[:, ib] >> 4) + 1) * torch.where((sh & 2) != 0, -1, 1)
@@ -143,8 +147,10 @@ def dequantize_iq4_k_reference(
         s1, s2 = s1 - 32, s2 - 32
         packed = qs[:, ib * 16 : (ib + 1) * 16]
         book = (extra >> (2 * ib)) & 3
-        first = table[((book & 1) * 16)[:, None] + (packed & 15)]
-        second = table[((book >> 1) * 16)[:, None] + (packed >> 4)]
+        first_indices = ((book & 1) * 16)[:, None] + (packed & 15)
+        second_indices = ((book >> 1) * 16)[:, None] + (packed >> 4)
+        first = table[first_indices.long()]
+        second = table[second_indices.long()]
         values.append(
             torch.cat((first * s1[:, None], second * s2[:, None]), dim=1) * d[:, None]
         )

@@ -38,7 +38,7 @@ def dequantize_iq4_kss_reference(
 ) -> torch.Tensor:
     """Decode row-prefix IQ4_KSS using upstream XOR/Grey reconstruction."""
     rows, blocks_per_row = _validate_rows(W, m, n, QK_IQ4_KSS, IQ4_KSS_BLOCK_BYTES, 4)
-    prefix = rows[:, :4].contiguous().view(torch.float32)
+    prefix = rows[:, :4].contiguous().view(torch.float32).reshape(m)
     blocks = rows[:, 4:].reshape(m, blocks_per_row, 128)
     packed = blocks.contiguous().view(torch.int16).to(torch.int64) & 0xFFFF
     packed = packed.reshape(m, blocks_per_row, 8, 8)
@@ -88,9 +88,9 @@ def dequantize_iq4_kss_reference(
     indices = torch.cat((aux_bytes & 15, aux_bytes >> 4), dim=-1)
     values = codebook[indices + (ls & 1).unsqueeze(-1) * 16]
     scale = (ls & 254).to(torch.float32) - 127
-    output = values * scale.unsqueeze(-1)
-    output = output.reshape(m, n) * prefix[:, None]
-    return output.to(dtype or torch.float16)
+    output = (values * scale.unsqueeze(-1)).reshape(m, blocks_per_row, 256)
+    output = output * prefix[:, None, None]
+    return output.reshape(m, n).to(dtype or torch.float16)
 
 
 def dequantize_iq2_kl_reference(
@@ -98,11 +98,16 @@ def dequantize_iq2_kl_reference(
 ) -> torch.Tensor:
     """Decode row-prefix IQ2_KL scales and packed pair codebook values."""
     rows, blocks_per_row = _validate_rows(W, m, n, QK_IQ2_KL, IQ2_KL_BLOCK_BYTES, 2)
-    prefix = rows[:, :2].contiguous().view(torch.float16).to(torch.float32)
+    prefix = rows[:, :2].contiguous().view(torch.float16).to(torch.float32).reshape(m)
     block_bytes = rows[:, 2:].reshape(m, blocks_per_row, 86)
     blocks = block_bytes.to(torch.int64)
     scales_h = (
-        block_bytes[:, :, :2].contiguous().view(torch.int16).to(torch.int64) & 0xFFFF
+        block_bytes[:, :, :2]
+        .contiguous()
+        .view(torch.int16)
+        .to(torch.int64)
+        .squeeze(-1)
+        & 0xFFFF
     )
     scales_l = blocks[:, :, 2:6]
     qs = blocks[:, :, 6:70]
@@ -163,19 +168,12 @@ def dequantize_iq2_kl_reference(
         values2 = torch.stack((pair2 & 255, pair2 >> 8), -1)
         values1 = torch.where(values1 < 128, values1, values1 - 256).float()
         values2 = torch.where(values2 < 128, values2, values2 - 256).float()
-        first = (values1 * (sl1 - 32).float().unsqueeze(-1)).reshape(
-            m, blocks_per_row, 32
-        )
-        second = (values2 * (sl2 - 32).float().unsqueeze(-1)).reshape(
-            m, blocks_per_row, 32
-        )
+        first = values1.reshape(m, blocks_per_row, 32)
+        first = first * (sl1 - 32).float()[:, :, None] * prefix[:, None, None]
+        second = values2.reshape(m, blocks_per_row, 32)
+        second = second * (sl2 - 32).float()[:, :, None] * prefix[:, None, None]
         outputs.append(torch.cat((first, second), -1))
-    return (
-        torch.cat(outputs, -1)
-        .reshape(m, n)
-        .mul(prefix[:, None])
-        .to(dtype or torch.float16)
-    )
+    return torch.cat(outputs, -1).reshape(m, n).to(dtype or torch.float16)
 
 
 REFERENCE_DECODERS = {

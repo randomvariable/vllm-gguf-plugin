@@ -64,7 +64,8 @@ def test_iq4_ks_decodes_codebook_and_row_scale():
     output = dequantize_iq4_ks_reference(
         torch.tensor(list(raw), dtype=torch.uint8), 1, 256, dtype=torch.float32
     )
-    torch.testing.assert_close(output[0, :32], torch.full((32,), 26416.0))
+    torch.testing.assert_close(output[0, :16], torch.full((16,), 26416.0))
+    torch.testing.assert_close(output[0, 16:32], torch.full((16,), 21082.0))
 
 
 @pytest.mark.parametrize("_, qk, prefix, block, decoder", FORMATS)
@@ -92,4 +93,21 @@ def test_reference_shapes_are_finite_for_valid_rows(m, blocks_per_row, format_da
     raw = torch.zeros(m * (prefix + block * blocks_per_row), dtype=torch.uint8)
     output = decoder(raw, m, qk * blocks_per_row, dtype=torch.float32)
     assert output.shape == (m, qk * blocks_per_row)
+    assert torch.isfinite(output).all()
+
+
+@pytest.mark.parametrize("_, qk, prefix, block, decoder", FORMATS)
+def test_reference_broadcasts_row_prefix_across_many_blocks(
+    _, qk, prefix, block, decoder
+):
+    """Row prefixes broadcast per row, not across the block dimension."""
+    rows = 3
+    blocks_per_row = 16
+    raw = torch.zeros(
+        rows * (prefix + block * blocks_per_row), dtype=torch.uint8
+    )
+
+    output = decoder(raw, rows, qk * blocks_per_row, dtype=torch.float32)
+
+    assert output.shape == (rows, qk * blocks_per_row)
     assert torch.isfinite(output).all()

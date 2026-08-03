@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from ...gemm.utils import GGML_TYPE_I2_S, GGML_TYPE_Q6_0
+from ..gemm.utils import GGML_TYPE_I2_S, GGML_TYPE_Q6_0
 
 Q6_0_BLOCK_BYTES = 26
 I2_S_ROW_SCALE_BYTES = 4
