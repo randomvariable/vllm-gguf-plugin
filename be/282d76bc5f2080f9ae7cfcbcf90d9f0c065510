@@ -1,0 +1,29 @@
+docker/Dockerfile.gfx1151
+  s_053e1bf79e0fcc::t_77e9389fe4e6ca 8,17-21
+  s_053e1bf79e0fcc::t_f894d0134f19d3 22,24-25
+  s_053e1bf79e0fcc::t_6d771208230b1a 1-7,9-16,26-28
+  s_053e1bf79e0fcc::t_d992f838559ec3 23
+.dockerignore
+  s_053e1bf79e0fcc::t_6d771208230b1a 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "be282d76bc5f2080f9ae7cfcbcf90d9f0c065510",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_053e1bf79e0fcc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03794962cfferGOpmBnozZeB6x",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    }
+  }
+}
