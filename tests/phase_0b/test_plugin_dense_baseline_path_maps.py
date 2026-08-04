@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 import subprocess
 from copy import deepcopy
 from pathlib import Path
@@ -143,9 +144,19 @@ def maps() -> dict[str, dict[str, Any]]:
 def test_path_maps_have_exact_plugin_checkout_provenance(
     maps: dict[str, dict[str, Any]],
 ) -> None:
-    expected = {
+    """Artifacts must describe the source they were captured from.
+
+    ``source_tree_sha256`` is the integrity gate: it is content-addressed over
+    SOURCE_FILES, so any edit to a recorded authority invalidates the capture
+    and forces a re-run.
+
+    ``commit_sha`` is provenance context, not an integrity check. It is only
+    required to name a real commit reachable from HEAD -- requiring equality
+    with HEAD would be circular, since committing an artifact necessarily
+    advances HEAD past the value recorded inside it.
+    """
+    exact = {
         "repo_url": _git_output("remote", "get-url", "origin"),
-        "commit_sha": _git_output("rev-parse", "HEAD"),
         "source_tree_sha256": _source_tree_sha256(),
         "extractor_version": "phase-0b-static/0.2",
     }
@@ -153,8 +164,20 @@ def test_path_maps_have_exact_plugin_checkout_provenance(
         validate_artifact(artifact)
         assert artifact["side"] == "plugin"
         assert artifact["comparator"]["kind"] == "rocmfpx_model_author_fork"
-        for key, value in expected.items():
+        for key, value in exact.items():
             assert artifact["provenance"][key] == value
+
+        commit_sha = artifact["provenance"]["commit_sha"]
+        assert re.fullmatch(r"[0-9a-f]{40}", commit_sha), commit_sha
+        assert (
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", commit_sha, "HEAD"],
+                cwd=ROOT,
+                capture_output=True,
+                check=False,
+            ).returncode
+            == 0
+        ), f"provenance commit {commit_sha} is not an ancestor of HEAD"
 
 
 @pytest.mark.parametrize(
