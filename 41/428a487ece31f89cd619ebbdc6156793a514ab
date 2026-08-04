@@ -1,0 +1,32 @@
+vllm_gguf_plugin/triton/fused_moe/interface.py
+  s_a35c62a3e8a532::t_69d060ab60e075 19,49,84,111
+vllm_gguf_plugin/triton/fused_moe/standard_quant/q4_0_rocmfp4_fast.py
+  s_a35c62a3e8a532::t_a9acbb412aa2a6 1-148,152-189
+  s_a35c62a3e8a532::t_b1187e57917dbc 149-151
+vllm_gguf_plugin/triton/fused_moe/standard_quant/__init__.py
+  s_a35c62a3e8a532::t_69d060ab60e075 5,19
+vllm_gguf_plugin/triton/fused_moe/utils.py
+  s_a35c62a3e8a532::t_69d060ab60e075 25,64,77
+  s_a35c62a3e8a532::t_4a9c73546dbba0 82-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "41428a487ece31f89cd619ebbdc6156793a514ab",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
