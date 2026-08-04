@@ -97,6 +97,35 @@ implemented as Python/Triton/native CUDA/HIP ports only where the corresponding
 dispatch table says so; unsupported combinations fail or use an explicit dense
 fallback rather than silently selecting a wrong kernel.
 
+## Multi-Token Prediction (MTP)
+
+vLLM's native MTP reuses the target model's quantization. The MTP head is built
+from ordinary `LinearBase` and `RoutedExperts` layers, so it loads through the
+same `GGUFLinearMethod` and `GGUFMoEMethod` as the main model. There is no
+separate MTP quantization path, and no MTP-specific kernel work is required for
+a format that already has linear and MoE support.
+
+What MTP does require is tensor-name resolution. GGUF encodes an MTP head as
+`blk.{n}.nextn.*` tensors, and `gguf.TensorNameMap` only emits those for
+architectures listed in its `MODEL_TENSORS` table. The published `gguf` package
+lags llama.cpp master here, so `vllm_gguf_plugin/mtp_types.py` registers the
+missing entries at import time, in the same way `ik_types.py` registers
+ik_llama quantization types.
+
+| Architecture support | Count | Notes |
+|---|--:|---|
+| Declared by installed `gguf` | 5 | `glm4`, `glm4moe`, `glm-dsa`, `exaone-moe`, `bailingmoe2` |
+| Added by this plugin | 7 | `deepseek2`, `qwen3next`, `qwen35`, `qwen35moe`, `exaone4`, `mimo2`, `step35` |
+| Needs a newer `gguf` | 5 | `cohere2moe`, `deepseek32`, `deepseek4`, `gemma4-assistant`, `hy_v3` |
+
+The last group has no `MODEL_ARCH` member in the installed release, so no
+runtime patch can reach it. `mtp_types.unsupported_mtp_architectures()` reports
+that set, so the gap is visible rather than appearing as an unsupported model.
+
+This covers weight-name resolution only. Running an MTP checkpoint end to end
+also depends on vLLM's speculative-decoding stack and on the target model's
+quantization support, neither of which this section claims.
+
 ## How to Interpret Comparisons
 
 - Compare packed weight bytes only when the format ABI matches: same type ID,
