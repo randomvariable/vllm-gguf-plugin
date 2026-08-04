@@ -1,0 +1,26 @@
+tests/ik_abi_oracle.py
+  s_a35c62a3e8a532::t_8390b6016850a8 50-53,75-78,105-108
+  s_a35c62a3e8a532::t_9299c969568b27 68-70,182-184
+  s_a35c62a3e8a532::t_0d3c33d8349ef0 1-49,54-67,71-74,79-104,109-181,185-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ef0f4d91aade2816567e4877138c2795331764e6",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
