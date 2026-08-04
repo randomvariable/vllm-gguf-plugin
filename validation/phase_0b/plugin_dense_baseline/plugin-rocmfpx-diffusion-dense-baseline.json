@@ -15,7 +15,7 @@
     "envelope_id": "plugin-rocmfpx-diffusion-dense-baseline-envelope",
     "side": "plugin"
   },
-  "artifact_hash": "e12ea2bf9357572d59d6c9fe7bd316c779aef71fb17c08a5500338a69e3459b0",
+  "artifact_hash": "9abf506f48cae32b1842070a2c7bc8c71268d9f15c74f5a8aa80577362b040d1",
   "artifact_id": "plugin-rocmfpx-diffusion-dense-baseline",
   "comparator": {
     "artifact_id": "plugin-comparator-baseline",
@@ -163,11 +163,11 @@
     "commit_sha": "8cbcd230120a9d1eb2e3e01c2e516392574a2514",
     "extractor_version": "phase-0b-static/0.2",
     "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
-    "source_tree_sha256": "593961a67a8580c314bc98f5ccbab76aa437f792b96574ce13bd53cdc4438834",
+    "source_tree_sha256": "70e4409bb1db2bc998ceae5e3cca3c5c917946f0df0f6b5586d528220f7b5797",
     "sources": {
       "vllm_gguf_plugin/quantization/diffusion_config.py": "7cff2b59f9277343520e864a11ce33457e322d1800027e4b66e934c85080c126",
       "vllm_gguf_plugin/quantization/linear.py": "7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7",
-      "vllm_gguf_plugin/rocmfpx_types.py": "8f051bcfd35e6fc2095d52f13f05c3acea8733d957458a5735beaa7ffdeeab4f",
+      "vllm_gguf_plugin/rocmfpx_types.py": "438b90be87a3ad1265443e5c8cc2756c0dff42129483f16401bdc1b2662a479d",
       "vllm_gguf_plugin/triton/dequantize/interface.py": "38b781ac781f777834c0587b347021a6be7b7b0f7de40985520259bdaef9490f",
       "vllm_gguf_plugin/weights_adapter/diffusion/loader.py": "35dbcce672e1ba11374147a6ad0c6365b7dc11a2da4def075435d51e1f396035"
     }
