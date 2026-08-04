@@ -1,0 +1,30 @@
+tests/test_mtp_tensor_mapping.py
+  s_a35c62a3e8a532::t_2a227d2d134bbb 6-17,27-35,50,54,57-58,60-66,69-78,88-90,95,98-131,133-148,152,154
+  s_a35c62a3e8a532::t_1f048ea1f960b5 1-5,18-26,36-49,51-53,55-56,59,67-68,79-87,91-94,96-97,132,149-151,153,155-167
+vllm_gguf_plugin/mtp_types.py
+  s_a35c62a3e8a532::t_0eb2cb8d4d6569 78
+  s_a35c62a3e8a532::t_8547d48464c7ef 1-77,79-110
+vllm_gguf_plugin/__init__.py
+  s_a35c62a3e8a532::t_0ae9650526919b 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "3611534587dae947682b89d61db62d89ffc72eed",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
