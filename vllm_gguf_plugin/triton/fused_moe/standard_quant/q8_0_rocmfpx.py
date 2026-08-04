@@ -16,7 +16,6 @@ from ...gemm.utils import GGML_TYPE_Q8_0_ROCMFPX
 from ...utils_rocmfpx_decode import decode_ue4m3_scale
 from ..utils import (
     load_moe_token_info,
-    load_moe_x_tile,
     run_triton_fused_moe_kernel,
 )
 
@@ -77,7 +76,8 @@ def _q8_0_rocmfpx_moe_kernel(
         x_ptrs = (
             x_ptr
             + offs_token[:, None, None] * stride_xm
-            + (cur_kb[None, :, None] * BLOCK_SIZE + offs_code[None, None, :]) * stride_xk
+            + (cur_kb[None, :, None] * BLOCK_SIZE + offs_code[None, None, :])
+            * stride_xk
         )
         x_tile = tl.load(
             x_ptrs,
@@ -109,7 +109,7 @@ def _q8_0_rocmfpx_moe_kernel(
         scale_mask = (offs_n[:, None] < n) & kb_mask[None, :]
         scale_byte = tl.load(scale_ptrs, mask=scale_mask, other=0)
         scale = decode_ue4m3_scale(scale_byte).to(x_dtype)  # (BLOCK_N, BLOCK_K_BLOCKS)
-        # Weight tile: codes (BLOCK_N, BLOCK_K_BLOCKS, 32) * scale (BLOCK_N, BLOCK_K_BLOCKS, 1).
+        # Weight tile: codes (BLOCK_N, BLOCK_K_BLOCKS, 32) scaled per block.
         w_tile = codes * scale[:, :, None]
         w_tile = tl.reshape(w_tile, (BLOCK_N, BLOCK_K_BLOCKS * BLOCK_SIZE))
 
