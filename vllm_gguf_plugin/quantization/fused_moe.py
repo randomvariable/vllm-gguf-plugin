@@ -22,8 +22,8 @@ from vllm.model_executor.utils import set_weight_attrs
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
-from ..triton.fused_moe.interface import ggml_moe_a8_triton
-from ..triton.fused_moe.utils import ROCMFPX_MOE_TYPES
+from ..triton.fused_moe.interface import TRITON_MOE_DISPATCH, ggml_moe_a8_triton
+from ..triton.fused_moe.utils import ROCMFPX_MOE_TYPES, get_triton_moe_block_m
 from .params import (
     GGUFUninitializedWeightParameter,
     GGUFUninitializedWeightTypeParameter,
@@ -56,14 +56,41 @@ def _fused_moe_gguf(
 
     out_hidden_states = torch.empty_like(x)
     # ROCmFPX fused Triton MoE: gated on gfx115x availability, falls back to the
-    # per-token per-expert loop below when ineligible. Type 103 (Q8_0_ROCMFPX)
-    # is the first registered format; others reach the slow fallback until
-    # they gain a dedicated kernel.
+    # per-token per-expert loop below when ineligible.
+    #
+    # Real ROCmFPX GGUF exports mix quant types across the expert tensors. Read
+    # directly from published GGUF headers:
+    #
+    #   Qwen3.6-14B-A3B-ROCmFPX-STRIX_LEAN    gate/up/down all 101
+    #   Qwen-AgentWorld-35B-A3B Q6_0_ROCMFPX  gate/up 102, down {102, 103}
+    #   Qwen-AgentWorld-35B-A3B Q4_0_ROCMFP4  up 100, gate {13, 100}, down {13, 14}
+    #
+    # So w13 and w2 legitimately carry different quant types, including a ROCmFPX
+    # type paired with a K-quant. Requiring both sides to be ROCmFPX sent those
+    # layers to the slow loop even though both tensors have working Triton MoE
+    # kernels.
+    #
+    # ggml_moe_a8_triton already selects the kernel per tensor, so this only needs
+    # both sides dispatchable. Requiring at least one ROCmFPX side keeps pure
+    # K-quant layers on their existing native MMQ/MMVQ routing rather than
+    # silently rerouting them onto an unmeasured path.
     if (
-        qweight_type in ROCMFPX_MOE_TYPES
-        and qweight_type2 in ROCMFPX_MOE_TYPES
+        (qweight_type in ROCMFPX_MOE_TYPES or qweight_type2 in ROCMFPX_MOE_TYPES)
+        and qweight_type in TRITON_MOE_DISPATCH
+        and qweight_type2 in TRITON_MOE_DISPATCH
         and ops._rocmfpx_gfx115x_available(w1, x)
     ):
+        # Both matmuls share one moe_align_block_size result, so they must agree
+        # on BLOCK_M. They do today (all 4); assert so a future per-type override
+        # fails loudly instead of silently misaligning the second matmul.
+        block_m = get_triton_moe_block_m(qweight_type)
+        block_m2 = get_triton_moe_block_m(qweight_type2)
+        if block_m != block_m2:
+            raise ValueError(
+                f"fused MoE BLOCK_M mismatch: type {qweight_type} uses {block_m}, "
+                f"type {qweight_type2} uses {block_m2}; a shared token alignment "
+                f"cannot serve both"
+            )
         from vllm.model_executor.layers.fused_moe.fused_moe import moe_align_block_size
 
         num_tokens, _ = x.shape
