@@ -289,15 +289,15 @@ def test_moe_map_accounts_for_both_expert_dequantizations_and_intermediates(
         item["location"]["line"]
         for item in artifact["facts"]["allocations"]
         if item["kind"] == "dense_weight_temporary" and item["created"]
-    } == {123, 125}
+    } == {183, 185}
     assert {
         (item["location"]["line"], item["classification"])
         for item in semantic_allocations
     } >= {
-        (123, "dense_materialization"),
-        (124, "activation"),
-        (125, "dense_materialization"),
-        (129, "output_accumulation"),
+        (183, "dense_materialization"),
+        (184, "activation"),
+        (185, "dense_materialization"),
+        (189, "output_accumulation"),
     }
 
 

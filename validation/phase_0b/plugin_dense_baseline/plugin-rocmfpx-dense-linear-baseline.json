@@ -15,7 +15,7 @@
     "envelope_id": "plugin-rocmfpx-dense-linear-baseline-envelope",
     "side": "plugin"
   },
-  "artifact_hash": "4ff82d180584e245dab7d28e589d8afea101ee8f7d8ea0db527c7a63bb10989c",
+  "artifact_hash": "8ec8b761d465865d00fe2308dd149d2491e08e43c0ce3ab294d87f03adb1a6b6",
   "artifact_id": "plugin-rocmfpx-dense-linear-baseline",
   "comparator": {
     "artifact_id": "plugin-comparator-baseline",
@@ -170,10 +170,10 @@
     ]
   },
   "provenance": {
-    "commit_sha": "35e144a6ffa130c36a2c6982cef6706275eac133",
+    "commit_sha": "8cbcd230120a9d1eb2e3e01c2e516392574a2514",
     "extractor_version": "phase-0b-static/0.2",
     "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
-    "source_tree_sha256": "6c77d3c46d1cd116e5e8c52c2b0ccb0c53b0c9d3c5265dbf3c912eaf63a7db83",
+    "source_tree_sha256": "47a552ebbf89b227ebaf04b779e55647aae5f17d4487715ddec3fa69ff14418e",
     "sources": {
       "vllm_gguf_plugin/quantization/linear.py": "7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7"
     }
