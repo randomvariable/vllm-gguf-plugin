@@ -1,0 +1,43 @@
+vllm_gguf_plugin/triton/fused_moe/interface.py
+  s_a35c62a3e8a532::t_17232bb81727a5 52-53,60
+  s_a35c62a3e8a532::t_14818ad6ea5ae8 91-93,121-123
+  s_a35c62a3e8a532::t_d98c3674d4cd2b 15,17,27
+vllm_gguf_plugin/triton/gemm/utils.py
+  s_a35c62a3e8a532::t_552a1c72654fd2 155-157
+  s_a35c62a3e8a532::t_9306ed1c33b87e 65-67,107-109
+vllm_gguf_plugin/triton/fused_moe/standard_quant/q6_0_rocmfpx.py
+  s_a35c62a3e8a532::t_dd5587ac896590 1-133,135-165
+  s_a35c62a3e8a532::t_b96bde48132686 134
+vllm_gguf_plugin/triton/fused_moe/standard_quant/__init__.py
+  s_a35c62a3e8a532::t_11cabfc891c50b 3-4,11,25-27
+vllm_gguf_plugin/triton/fused_moe/standard_quant/q2_0_rocmfpx.py
+  s_a35c62a3e8a532::t_bd3ea751581726 1-122,124-154
+  s_a35c62a3e8a532::t_b96bde48132686 123
+vllm_gguf_plugin/triton/fused_moe/standard_quant/q3_0_rocmfpx.py
+  s_a35c62a3e8a532::t_13ce7f5652f7c5 1-151,153-183
+  s_a35c62a3e8a532::t_b96bde48132686 152
+vllm_gguf_plugin/triton/fused_moe/utils.py
+  s_a35c62a3e8a532::t_39ece91dbea364 68-70,84-86,95-97
+  s_a35c62a3e8a532::t_c75dbf5276e4b3 21,23,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "6f97a3b5c130d6a87428a8e548c6c68459c84371",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
