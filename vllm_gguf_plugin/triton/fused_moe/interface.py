@@ -12,7 +12,9 @@ from ..gemm.utils import (
     GGML_TYPE_IQ3_XXS,
     GGML_TYPE_IQ4_NL,
     GGML_TYPE_IQ4_XS,
+    GGML_TYPE_Q2_0_ROCMFPX,
     GGML_TYPE_Q2_K,
+    GGML_TYPE_Q3_0_ROCMFPX,
     GGML_TYPE_Q3_K,
     GGML_TYPE_Q4_0,
     GGML_TYPE_Q4_0_ROCMFP4,
@@ -22,6 +24,7 @@ from ..gemm.utils import (
     GGML_TYPE_Q5_0,
     GGML_TYPE_Q5_1,
     GGML_TYPE_Q5_K,
+    GGML_TYPE_Q6_0_ROCMFPX,
     GGML_TYPE_Q6_K,
     GGML_TYPE_Q8_0,
     GGML_TYPE_Q8_0_ROCMFPX,
@@ -46,12 +49,15 @@ from .k_quant import (
     ggml_moe_q6_k_triton,
 )
 from .standard_quant import (
+    ggml_moe_q2_0_rocmfpx_triton,
+    ggml_moe_q3_0_rocmfpx_triton,
     ggml_moe_q4_0_rocmfp4_fast_triton,
     ggml_moe_q4_0_rocmfp4_triton,
     ggml_moe_q4_0_triton,
     ggml_moe_q4_1_triton,
     ggml_moe_q5_0_triton,
     ggml_moe_q5_1_triton,
+    ggml_moe_q6_0_rocmfpx_triton,
     ggml_moe_q8_0_rocmfpx_triton,
     ggml_moe_q8_0_triton,
     ggml_moe_q8_1_triton,
@@ -82,6 +88,9 @@ TRITON_MOE_SUPPORTED_TYPES = frozenset(
         GGML_TYPE_Q8_0_ROCMFPX,
         GGML_TYPE_Q4_0_ROCMFP4,
         GGML_TYPE_Q4_0_ROCMFP4_FAST,
+        GGML_TYPE_Q6_0_ROCMFPX,
+        GGML_TYPE_Q3_0_ROCMFPX,
+        GGML_TYPE_Q2_0_ROCMFPX,
     }
 )
 
@@ -109,6 +118,9 @@ TRITON_MOE_DISPATCH = {
     GGML_TYPE_Q8_0_ROCMFPX: ggml_moe_q8_0_rocmfpx_triton,
     GGML_TYPE_Q4_0_ROCMFP4: ggml_moe_q4_0_rocmfp4_triton,
     GGML_TYPE_Q4_0_ROCMFP4_FAST: ggml_moe_q4_0_rocmfp4_fast_triton,
+    GGML_TYPE_Q6_0_ROCMFPX: ggml_moe_q6_0_rocmfpx_triton,
+    GGML_TYPE_Q3_0_ROCMFPX: ggml_moe_q3_0_rocmfpx_triton,
+    GGML_TYPE_Q2_0_ROCMFPX: ggml_moe_q2_0_rocmfpx_triton,
 }
 
 
