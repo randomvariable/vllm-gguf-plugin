@@ -68,6 +68,29 @@ static void launch_mul_mat_vec_rocmfp4_fast(
 }
 
 // =============================================================================
+template <typename scalar_t>
+__device__ __forceinline__ scalar_t to_scalar(float v);
+
+template <>
+__device__ __forceinline__ float to_scalar<float>(float v) {
+  return v;
+}
+
+template <>
+__device__ __forceinline__ half to_scalar<half>(float v) {
+  return __float2half(v);
+}
+
+template <>
+__device__ __forceinline__ c10::Half to_scalar<c10::Half>(float v) {
+  return c10::Half(v);
+}
+
+template <>
+__device__ __forceinline__ c10::BFloat16 to_scalar<c10::BFloat16>(float v) {
+  return c10::BFloat16(v);
+}
+
 // ROCmFPX GEMV: shared launch shell with format-specialized decode bodies.
 //
 // Every ROCmFPX layout uses 32 weights per block and UE4M3 scales, so the
@@ -212,7 +235,7 @@ __global__ void mul_mat_vec_rocmfpx_kernel(const uint8_t* w, const scalar_t* x,
     const uint8_t* blk = w + (r * blocks + b) * Decoder::BLOCK_BYTES;
     sum += Decoder::template dot<scalar_t>(blk, xrow + b * 32);
   }
-  y[v * row + r] = static_cast<scalar_t>(sum);
+  y[v * row + r] = to_scalar<scalar_t>(sum);
 }
 
 template <typename scalar_t, typename Decoder>
@@ -222,12 +245,58 @@ static void launch_mul_mat_vec_rocmfpx(const uint8_t* w, const scalar_t* x,
                                        const ::dim3 block,
                                        cudaStream_t stream) {
 #ifdef USE_ROCM
-  hipLaunchKernelGGL((mul_mat_vec_rocmfpx_kernel<scalar_t, Decoder>), grid,
-                     block, 0, stream, w, x, y, col, row, vecs);
+  hipLaunchKernelGGL(
+      (mul_mat_vec_rocmfpx_kernel<scalar_t, Decoder>), grid, block, 0, stream,
+      w, x, y, col, row, vecs);
 #else
   mul_mat_vec_rocmfpx_kernel<scalar_t, Decoder>
       <<<grid, block, 0, stream>>>(w, x, y, col, row, vecs);
 #endif
+}
+
+// Per-decoder launcher wrappers: VLLM_DISPATCH_FLOATING_TYPES takes a fixed
+// (TYPE, NAME, BODY) triple, so the dispatch body must contain no commas. Each
+// wrapper binds Decoder inside its own scope (outside the macro), exposing a
+// single-template-arg entry point to the dispatch switch.
+template <typename scalar_t>
+static void launch_gemv_rocmfpx_q4_0(const uint8_t* w, const scalar_t* x,
+                                     scalar_t* y, int64_t col, int64_t row,
+                                     int64_t vecs, const ::dim3 grid,
+                                     const ::dim3 block, cudaStream_t stream) {
+  launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ4_0>(w, x, y, col, row,
+                                                          vecs, grid, block, stream);
+}
+template <typename scalar_t>
+static void launch_gemv_rocmfpx_q6_0(const uint8_t* w, const scalar_t* x,
+                                     scalar_t* y, int64_t col, int64_t row,
+                                     int64_t vecs, const ::dim3 grid,
+                                     const ::dim3 block, cudaStream_t stream) {
+  launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ6_0>(w, x, y, col, row,
+                                                          vecs, grid, block, stream);
+}
+template <typename scalar_t>
+static void launch_gemv_rocmfpx_q8_0(const uint8_t* w, const scalar_t* x,
+                                     scalar_t* y, int64_t col, int64_t row,
+                                     int64_t vecs, const ::dim3 grid,
+                                     const ::dim3 block, cudaStream_t stream) {
+  launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ8_0>(w, x, y, col, row,
+                                                          vecs, grid, block, stream);
+}
+template <typename scalar_t>
+static void launch_gemv_rocmfpx_q3_0(const uint8_t* w, const scalar_t* x,
+                                     scalar_t* y, int64_t col, int64_t row,
+                                     int64_t vecs, const ::dim3 grid,
+                                     const ::dim3 block, cudaStream_t stream) {
+  launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ3_0>(w, x, y, col, row,
+                                                          vecs, grid, block, stream);
+}
+template <typename scalar_t>
+static void launch_gemv_rocmfpx_q2_0(const uint8_t* w, const scalar_t* x,
+                                     scalar_t* y, int64_t col, int64_t row,
+                                     int64_t vecs, const ::dim3 grid,
+                                     const ::dim3 block, cudaStream_t stream) {
+  launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ2_0>(w, x, y, col, row,
+                                                          vecs, grid, block, stream);
 }
 
 static inline cudaStream_t get_current_cuda_stream(int32_t device_index) {
@@ -310,7 +379,7 @@ __global__ void dequantize_rocmfp4_kernel(const uint8_t* w, scalar_t* y,
   const int code = lane < 16 ? (q & 0x0f) : (q >> 4);
   const uint8_t scale_byte = packed[16 + (lane >= 16)];
   if (scale_byte > 0x7e) {
-    y[(i / n) * n + (i % n)] = static_cast<scalar_t>(0.0f);
+    y[(i / n) * n + (i % n)] = to_scalar<scalar_t>(0.0f);
     return;
   }
   const int exponent = (scale_byte >> 3) & 0x0f;
@@ -319,7 +388,7 @@ __global__ void dequantize_rocmfp4_kernel(const uint8_t* w, scalar_t* y,
                           ? static_cast<float>(mantissa) / 1024.0f
                           : (1.0f + static_cast<float>(mantissa) / 8.0f) *
                                 exp2f(static_cast<float>(exponent - 8));
-  y[(i / n) * n + (i % n)] = static_cast<scalar_t>(codebook[code] * scale);
+  y[(i / n) * n + (i % n)] = to_scalar<scalar_t>(codebook[code] * scale);
 }
 
 static void launch_dequantize_rocmfp4(const uint8_t* w, void* y,
@@ -662,23 +731,23 @@ Tensor ggml_mul_mat_vec_rocmfpx(Tensor W, Tensor X, int64_t type,
         scalar_t* yp = static_cast<scalar_t*>(Y.data_ptr());
         switch (type) {
           case GGML_TYPE_Q4_0_ROCMFP4:
-            launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ4_0>(
+            launch_gemv_rocmfpx_q4_0<scalar_t>(
                 wp, xp, yp, col, row, vecs, grid, block, stream);
             break;
           case GGML_TYPE_Q6_0_ROCMFPX:
-            launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ6_0>(
+            launch_gemv_rocmfpx_q6_0<scalar_t>(
                 wp, xp, yp, col, row, vecs, grid, block, stream);
             break;
           case GGML_TYPE_Q8_0_ROCMFPX:
-            launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ8_0>(
+            launch_gemv_rocmfpx_q8_0<scalar_t>(
                 wp, xp, yp, col, row, vecs, grid, block, stream);
             break;
           case GGML_TYPE_Q3_0_ROCMFPX:
-            launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ3_0>(
+            launch_gemv_rocmfpx_q3_0<scalar_t>(
                 wp, xp, yp, col, row, vecs, grid, block, stream);
             break;
           case GGML_TYPE_Q2_0_ROCMFPX:
-            launch_mul_mat_vec_rocmfpx<scalar_t, RocmFPXDecodeQ2_0>(
+            launch_gemv_rocmfpx_q2_0<scalar_t>(
                 wp, xp, yp, col, row, vecs, grid, block, stream);
             break;
           default:
