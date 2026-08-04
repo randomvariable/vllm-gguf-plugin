@@ -1,0 +1,25 @@
+tests/test_rocmfpx_fused_moe_parity.py
+  s_a35c62a3e8a532::t_2c5bbc29eb9008 1-272,274-308
+  s_a35c62a3e8a532::t_09d7724d86244f 273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "9bb16ea4e199e12a2d65fd8ce08ad0f1dea04899",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
