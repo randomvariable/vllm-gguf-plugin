@@ -1,0 +1,26 @@
+tests/phase_0b/test_plugin_dense_baseline_path_maps.py
+  s_a35c62a3e8a532::t_7911662527a7f1 8
+  s_a35c62a3e8a532::t_ee44a2c7c36e3e 147-158,167,170-180
+  s_a35c62a3e8a532::t_fca6f041cec5a1 181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "76730444d5534049f30e267cf26611a22994b833",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
