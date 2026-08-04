@@ -1,0 +1,30 @@
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-mtp-probe-passthrough-baseline.json
+  s_a35c62a3e8a532::t_aac7beac79c8cf 18,126
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-dense-linear-baseline.json
+  s_a35c62a3e8a532::t_aac7beac79c8cf 18,176
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-diffusion-dense-baseline.json
+  s_a35c62a3e8a532::t_aac7beac79c8cf 18,166,170
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-moe-fallback-baseline.json
+  s_a35c62a3e8a532::t_aac7beac79c8cf 18,159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "7331dda32c79e7a776033bb7ba77eaa81b1b0923",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
