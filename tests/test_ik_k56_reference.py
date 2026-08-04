@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from tests import ik_abi_oracle
 from vllm_gguf_plugin.triton.dequantize.ik_k56_reference import (
     REFERENCE_DECODERS,
     dequantize_iq5_k_reference,
@@ -23,13 +24,15 @@ def test_iq5_k_decodes_codebook_and_high_bits():
     block[144] = 0x01
     block[144 + 16] = 0x02
 
-    decoded = dequantize_iq5_k_reference(torch.tensor(block), 1, 256, torch.float32)
+    decoded = dequantize_iq5_k_reference(
+        torch.tensor(block, dtype=torch.uint8), 1, 256, torch.float32
+    )
 
+    # Each 64-value group uses four sub-scales derived from one scales_h byte,
+    # all biased by -32; y[j+32]/y[j+48] reuse the high nibbles of qs[j]/qs[j+16].
     assert decoded.shape == (1, 256)
-    assert decoded[0, 0].item() == -6.0
-    assert decoded[0, 16].item() == 121.0
-    assert decoded[0, 32].item() == -4.0
-    assert decoded[0, 48].item() == 123.0
+    expected = torch.tensor(ik_abi_oracle.iq5_k(block), dtype=torch.float32)
+    torch.testing.assert_close(decoded.reshape(-1), expected)
 
 
 def test_iq6_k_decodes_extra_codebook_branch_and_little_endian_scale():
@@ -42,13 +45,15 @@ def test_iq6_k_decodes_extra_codebook_branch_and_little_endian_scale():
     block[148] = 0x01
     block[148 + 16] = 0x02
 
-    decoded = dequantize_iq6_k_reference(torch.tensor(block), 1, 256, torch.float32)
+    decoded = dequantize_iq6_k_reference(
+        torch.tensor(block, dtype=torch.uint8), 1, 256, torch.float32
+    )
 
+    # block_iq6_k.scales is int8_t and is applied directly (no bias), with the
+    # extra bits selecting the upper half of the 128-entry codebook.
     assert decoded.shape == (1, 256)
-    assert decoded[0, 0].item() == -1.0
-    assert decoded[0, 16].item() == 60.5
-    assert decoded[0, 32].item() == -1.5
-    assert decoded[0, 48].item() == 61.0
+    expected = torch.tensor(ik_abi_oracle.iq6_k(block), dtype=torch.float32)
+    torch.testing.assert_close(decoded.reshape(-1), expected)
 
 
 @pytest.mark.parametrize(
@@ -61,7 +66,13 @@ def test_iq6_k_decodes_extra_codebook_branch_and_little_endian_scale():
 def test_iq_k56_reads_one_fp16_scale_per_block(decoder, block_bytes, scale):
     block = bytearray(block_bytes)
     block[:2] = _half(scale)
-    block[16 if block_bytes == 176 else 20] = 0x01
+    if block_bytes == 176:
+        block[16] = 0x01
+    else:
+        # IQ6_K multiplies by signed per-group scales; leaving them zero would
+        # make the whole block decode to zero regardless of the packed codes.
+        block[4:20] = bytes([1] * 16)
+        block[20] = 0x01
 
     decoded = decoder(torch.tensor(block, dtype=torch.uint8), 1, 256, torch.float32)
 

@@ -3,6 +3,7 @@ import struct
 import pytest
 import torch
 
+from tests import ik_abi_oracle
 from vllm_gguf_plugin.ik_types import GGML_TYPE_I2_S, GGML_TYPE_Q6_0
 from vllm_gguf_plugin.triton.dequantize.interface import ggml_dequantize_triton
 
@@ -19,15 +20,10 @@ def test_q6_0_reference_decodes_packed_high_bits_on_cpu():
         dtype=torch.float32,
     )
 
-    expected = []
-    qs = block[10:]
-    qh = block[2:10]
-    for i, q in enumerate(qs):
-        high = qh[i % 8] >> (4 * (i // 8))
-        expected.append(0.5 * (((q & 0x0F) | ((high << 4) & 0x30)) - 32))
-        expected.append(0.5 * (((q >> 4) | ((high << 2) & 0x30)) - 32))
-
-    torch.testing.assert_close(output.reshape(-1), torch.tensor(expected))
+    # Native emits low nibbles into y[0:16] and high nibbles into y[16:32];
+    # they are not interleaved (dequantize.cuh dequantize_block_q6_0).
+    expected = torch.tensor(ik_abi_oracle.q6_0(block))
+    torch.testing.assert_close(output.reshape(-1), expected)
 
 
 def test_i2_s_reference_decodes_row_scale_and_four_planes():
@@ -43,7 +39,9 @@ def test_i2_s_reference_decodes_row_scale_and_four_planes():
         dtype=torch.float32,
     )
 
-    expected = torch.tensor([4.0] * 32 + [2.0] * 32 + [-2.0] * 64)
+    # Groups are MSB-first within each 128-value block: codes 3,2,1,0 decode to
+    # +2.0, +1.0, 0.0, -1.0 scaled by the trailing float32 row scale.
+    expected = torch.tensor(ik_abi_oracle.i2_s_row(raw, 128))
     torch.testing.assert_close(output.reshape(-1), expected)
 
 

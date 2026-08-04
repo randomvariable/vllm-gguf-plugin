@@ -5,6 +5,7 @@ import struct
 import pytest
 import torch
 
+from tests import ik_abi_oracle
 from vllm_gguf_plugin.triton.dequantize.ik_k234_reference import (
     IQ2_K_BLOCK_BYTES,
     IQ3_K_BLOCK_BYTES,
@@ -41,10 +42,9 @@ def test_iq2_k_decodes_dual_codebooks_and_group_order():
     output = dequantize_iq2_k_reference(
         torch.tensor(list(block), dtype=torch.uint8), 1, 256, torch.float32
     )
-    expected = torch.tensor(
-        [-31, -13, 1, 17] * 8 + [-52, -16, 12, 44] * 8,
-        dtype=torch.float32,
-    )
+    # Scales are `nibble - 8` (not -32), and qs advances only every 4th group,
+    # so groups 0..3 share one 32-byte window at shifts 0,2,4,6.
+    expected = torch.tensor(ik_abi_oracle.iq2_k(block), dtype=torch.float32)
     torch.testing.assert_close(output.reshape(-1), expected)
 
 
@@ -60,9 +60,10 @@ def test_iq2_k_decodes_per_block_fp16_scale_and_extra_codebooks():
 
     raw = torch.tensor([byte for block in blocks for byte in block], dtype=torch.uint8)
     output = dequantize_iq2_k_reference(raw, 2, 256, torch.float32)
-    torch.testing.assert_close(output[0, :4], torch.tensor([-26, -8, 6, 22]))
-    torch.testing.assert_close(output[1, :4], torch.tensor([-62, -26, 2, 34]))
-    torch.testing.assert_close(output[1, 128:132], torch.tensor([-62, -26, 2, 34]))
+    first = torch.tensor(ik_abi_oracle.iq2_k(blocks[0]), dtype=torch.float32)
+    second = torch.tensor(ik_abi_oracle.iq2_k(blocks[1]), dtype=torch.float32)
+    torch.testing.assert_close(output[0], first)
+    torch.testing.assert_close(output[1], second)
 
 
 def test_iq3_k_decodes_high_bits_signed_scales_and_codebooks():
@@ -77,10 +78,10 @@ def test_iq3_k_decodes_high_bits_signed_scales_and_codebooks():
     output = dequantize_iq3_k_reference(
         torch.tensor(list(block), dtype=torch.uint8), 1, 256, torch.float32
     )
-    # Group 0: first half uses negative scale and code 4; second uses code 0.
-    assert output[0, 0].item() == pytest.approx(63.0)
-    assert output[0, 16].item() == pytest.approx(-63.0)
-    assert output[0, 32].item() == pytest.approx(-40.0)
+    # Scale magnitude is `2*nibble + 1` with the sign taken from scales_h, and
+    # the third code bit comes from qh at shift ib32 % 8.
+    expected = torch.tensor(ik_abi_oracle.iq3_k(block), dtype=torch.float32)
+    torch.testing.assert_close(output.reshape(-1), expected)
 
 
 def test_iq3_k_decodes_per_block_fp16_scale_and_extra_codebooks():
@@ -111,8 +112,10 @@ def test_iq4_k_decodes_scale_split_and_nibble_order():
     output = dequantize_iq4_k_reference(
         torch.tensor(list(block), dtype=torch.uint8), 1, 256, torch.float32
     )
-    torch.testing.assert_close(output[0, :16], torch.full((16,), 992.0))
-    torch.testing.assert_close(output[0, 16:32], torch.full((16,), 961.0))
+    # The 6-bit scale is 4 low bits from scales_l plus 2 high bits from
+    # scales_h, biased by -32; both halves read the same qs byte.
+    expected = torch.tensor(ik_abi_oracle.iq4_k(block), dtype=torch.float32)
+    torch.testing.assert_close(output.reshape(-1), expected)
 
 
 def test_iq4_k_decodes_per_block_fp16_scale_and_extra_codebooks():
