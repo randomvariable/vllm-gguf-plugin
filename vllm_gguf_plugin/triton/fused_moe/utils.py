@@ -28,6 +28,7 @@ from ..gemm.utils import (
     GGML_TYPE_Q5_K,
     GGML_TYPE_Q6_K,
     GGML_TYPE_Q8_0,
+    GGML_TYPE_Q8_0_ROCMFPX,
     GGML_TYPE_Q8_1,
     TRITON_NUM_STAGES,
     TRITON_NUM_WARPS,
@@ -56,6 +57,7 @@ TRITON_FUSED_MOE_SUPPORTED_TYPES = frozenset(
         GGML_TYPE_IQ3_XXS,
         GGML_TYPE_IQ4_NL,
         GGML_TYPE_IQ4_XS,
+        GGML_TYPE_Q8_0_ROCMFPX,
     }
 )
 
@@ -66,7 +68,11 @@ TRITON_FUSED_MOE_BLOCK_K_BLOCKS = 4
 # Per-type BLOCK_M overrides for Triton MoE kernels.
 TRITON_MOE_BLOCK_M_BY_TYPE: dict[int, int] = {
     GGML_TYPE_Q4_0: 8,
+    GGML_TYPE_Q8_0_ROCMFPX: 4,  # explicit default; revisit after profiling
 }
+
+
+ROCMFPX_MOE_TYPES: frozenset = frozenset({GGML_TYPE_Q8_0_ROCMFPX})
 
 
 def get_triton_moe_block_m(quant_type: int) -> int:

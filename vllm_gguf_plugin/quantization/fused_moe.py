@@ -22,6 +22,8 @@ from vllm.model_executor.utils import set_weight_attrs
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
+from ..triton.fused_moe.interface import ggml_moe_a8_triton
+from ..triton.fused_moe.utils import ROCMFPX_MOE_TYPES
 from .params import (
     GGUFUninitializedWeightParameter,
     GGUFUninitializedWeightTypeParameter,
@@ -53,6 +55,53 @@ def _fused_moe_gguf(
     from vllm.model_executor.layers.fused_moe.fused_moe import moe_align_block_size
 
     out_hidden_states = torch.empty_like(x)
+    # ROCmFPX fused Triton MoE: gated on gfx115x availability, falls back to the
+    # per-token per-expert loop below when ineligible. Type 103 (Q8_0_ROCMFPX)
+    # is the first registered format; others reach the slow fallback until
+    # they gain a dedicated kernel.
+    if (
+        qweight_type in ROCMFPX_MOE_TYPES
+        and qweight_type2 in ROCMFPX_MOE_TYPES
+        and ops._rocmfpx_gfx115x_available(w1, x)
+    ):
+        from vllm.model_executor.layers.fused_moe.fused_moe import moe_align_block_size
+
+        num_tokens, _ = x.shape
+        E, N, _ = w1.shape
+        top_k = topk_ids.shape[1]
+        block_size = ops.ggml_moe_get_block_size(qweight_type)
+        sorted_token_ids, expert_ids, num_tokens_post_padded = moe_align_block_size(
+            topk_ids, block_size, E
+        )
+        out = ggml_moe_a8_triton(
+            x,
+            w1,
+            sorted_token_ids,
+            expert_ids,
+            num_tokens_post_padded,
+            qweight_type,
+            N,
+            top_k,
+            num_tokens,
+        )
+        out = act(out)
+        out = ggml_moe_a8_triton(
+            out,
+            w2,
+            sorted_token_ids,
+            expert_ids,
+            num_tokens_post_padded,
+            qweight_type2,
+            w2.shape[1],
+            1,
+            num_tokens * top_k,
+        )
+        out = out.reshape(num_tokens, top_k, w2.shape[1]).mul_(
+            topk_weights.view(num_tokens, top_k, 1)
+        )
+        ops.moe_sum(out, out_hidden_states)
+        return out_hidden_states
+
     # ROCmFPX types dispatch through their own lane, not the native MMQ/MMVQ
     # sets. MMVQ_QUANT_TYPES includes type 101 for *linear* GEMV routing,
     # but reusing it for MoE sent type 101 into ops.ggml_moe_a8_vec (which
