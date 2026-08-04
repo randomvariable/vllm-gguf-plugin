@@ -66,21 +66,31 @@ capability table, not by whether its decoder runs on CUDA or HIP.
 
 This matrix describes repository implementation status, not universal model
 compatibility. A model may still require compatible tensor names, shapes,
-runtime, and backend coverage. Native GEMV, native GEMM, and native MoE are
-separate capabilities; presence in one column does not imply presence in the
-others.
+runtime, and backend coverage. Each operation column is a separate capability;
+presence in one column does not imply presence in another.
 
-| Status | Format family | Current fork path | Native GEMV | Native GEMM | Native MoE | Limits and evidence |
-|---|---|---|---|---|---|---|
-| **Verified baseline** | Standard formats: `Q4_0`-`Q8_1`, `Q2_K`-`Q6_K`; upstream IQ formats `IQ1_M`, `IQ1_S`, `IQ2_*`, `IQ3_*`, `IQ4_NL`, `IQ4_XS` | Upstream-compatible packed weights with Python/Triton and native paths where capability tables allow | Yes for formats listed by the GEMV/MMVQ tables | Yes for formats listed by the GEMM/MMQ/Triton tables | Yes only for formats listed by the MoE table | Operation coverage is not universal across the family; use dispatch tables as authority |
-| **Limited** | ROCmFPX: type 100 `Q4_0_ROCMFP4`, type 101 `Q4_0_ROCMFP4_FAST`, type 102 `Q6_0_ROCMFPX`, type 103 `Q8_0_ROCMFPX`, type 104 `Q3_0_ROCMFPX`, type 107 `Q2_0_ROCMFPX` | Dedicated dense Triton GEMM on `gfx115*` for types 100/102/103/104/107 and gated Triton GEMM for type 101; dequantize-plus-dense fallback outside that gate. Types 100 and 101 also have native CUDA/HIP dequantization | Limited/conditional for type 101 native CUDA/HIP GEMV; no native GEMV for other ROCmFPX types | Dense Triton GEMM validated on Radeon 8060S (`gfx1151`) for types 100, 102, 103, 104, and 107; no native C++/HIP extension GEMM is claimed | Fused Triton MoE on `gfx115*` for all six ROCmFPX types, validated on Radeon 8060S (`gfx1151`) and NVIDIA GB10 (`sm_121`); no native C++/HIP extension MoE is claimed | Direct-kernel and public-dispatch Triton GEMM validation passed on Radeon 8060S (`gfx1151`) with ROCm/HIP 7.14.60850, Torch `2.12.0+rocm7.14.0`, Triton 3.7.1, and `TRITON_ALLOW_NON_CONSTEXPR_GLOBALS=1`. Independent per-format ABI oracles (Codebook10/UE4M3 bias-8 for 100/101; signed int8 for 103; LSB-first bit-offset extraction for the 2/3/6-bit formats, including the `0x20 => -32` sign-magnitude case) covered FP32/FP16/BF16, rank-2/rank-3 activations, tail output rows, multi-block rows, and reserved `0x7f..0xff` per-half scale zeroing. Public `ops.ggml_mul_mat_a8` dispatch was confirmed to select the dedicated kernel on hardware rather than silently dequantizing. This is direct kernel and dispatch validation, not full vLLM end-to-end/model-load validation, and does not claim broad universal support. |
-| **Limited** | ik K: `IQ*_K` | Python/Triton reference dequantization and materialized-dense path | No | No | No | Registered and wired; focused decoder coverage exists, but complete trusted-reference and end-to-end model validation remains incomplete |
-| **Limited** | ik KS: `IQ*_KS` | Python/Triton reference dequantization and materialized-dense path | No | No | No | Same limitation as ik K; packed geometry and decode tests are not a native GEMV/GEMM claim |
-| **Limited** | ik KSS/KL: `IQ4_KSS`, `IQ2_KL` | Python/Triton reference dequantization and materialized-dense path | No | No | No | Registered reference paths; no native GEMV/GEMM/MoE capability is advertised |
-| **Reference fallback** | ik KT: `IQ1_KT`, `IQ2_KT`, `IQ3_KT`, `IQ4_KT` | Software dequantization/materialized-dense reference fallback with one FP32 row-prefix per row | No | No | No | KT remains reference-fallback-only; native GEMV/GEMM/MoE acceleration is not claimed |
-| **Limited** | Trellis and related extended types: `TQ1_0`, `TQ2_0`, `Q2_0` | Registered reference dequantization and dense fallback | No | No | No | Type registration and focused CPU/reference checks do not establish native acceleration |
-| **Limited** | Type-41 `Q1_0` / `Q1_0_G128` | Accepted as aliases only with geometry `(128, 18)` | No | No | No | Incompatible type-41 geometry is rejected; native runtime validation remains pending |
-| **Deferred** | `MXFP4`, `NVFP4` | Not implemented | No | No | No | Do not advertise as supported |
+Legend: ✅ available · ⚠️ conditional or partial · ❌ not available.
+
+There is no Triton GEMV path in this plugin. `ggml_mul_mat_a8_triton` is a GEMM
+kernel, so small-batch work either uses a native GEMV kernel or falls back to
+dequantize-plus-dense. The Triton GEMV column is therefore ❌ everywhere and is
+kept only to make that explicit.
+
+The dispatch tables in `ops.py`, `triton/gemm/interface.py`, and
+`triton/fused_moe/interface.py` remain the authority; this table summarises them.
+
+| Status | Format family | Native GEMV | Native GEMM | Native MoE | Triton GEMV | Triton GEMM | Triton MoE | Limits and evidence |
+|---|---|:--:|:--:|:--:|:--:|:--:|:--:|---|
+| **Verified baseline** | Standard formats: `Q4_0`-`Q8_0`, `Q2_K`-`Q6_K` | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | Upstream-compatible packed weights. `Q8_1` is the exception in this family: it has Triton GEMM and Triton MoE but no native GEMV/GEMM/MoE |
+| **Verified baseline** | Upstream IQ formats: `IQ1_M`, `IQ1_S`, `IQ2_*`, `IQ3_*`, `IQ4_NL`, `IQ4_XS` | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | Native support is GEMV-only; larger batches and MoE use the Triton kernels |
+| **Limited** | ROCmFPX: type 100 `Q4_0_ROCMFP4`, type 101 `Q4_0_ROCMFP4_FAST`, type 102 `Q6_0_ROCMFPX`, type 103 `Q8_0_ROCMFPX`, type 104 `Q3_0_ROCMFPX`, type 107 `Q2_0_ROCMFPX` | ⚠️ | ❌ | ❌ | ❌ | ⚠️ | ⚠️ | Native GEMV kernels exist for all six types (`ggml_mul_mat_vec_rocmfpx`, plus `ggml_mul_mat_vec_rocmfp4_fast` for type 101) and require the compiled extension. Triton GEMM and Triton MoE are gated on `gfx115*`; outside that gate every ROCmFPX format falls back to dequantize-plus-dense. Types 100 and 101 also have native CUDA/HIP dequantization. No native C++/HIP GEMM or MoE is claimed. Validated on Radeon 8060S (`gfx1151`, ROCm/HIP 7.14.60850, Torch `2.12.0+rocm7.14.0`, Triton 3.7.1, `TRITON_ALLOW_NON_CONSTEXPR_GLOBALS=1`) and NVIDIA GB10 (`sm_121`, CUDA 13.0). Independent per-format ABI oracles (Codebook10/UE4M3 bias-8 for 100/101; signed int8 for 103; LSB-first bit-offset extraction for the 2/3/6-bit formats, including the `0x20 => -32` sign-magnitude case) covered FP32/FP16/BF16, rank-2/rank-3 activations, tail output rows, multi-block rows, and reserved `0x7f..0xff` per-half scale zeroing. MoE coverage includes layers that mix quant types across the expert tensors. This is kernel and dispatch validation, not full vLLM end-to-end/model-load validation. |
+| **Limited** | ik K: `IQ*_K` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Reference dequantization plus materialized-dense path. Registered and wired; focused decoder coverage exists, but complete trusted-reference and end-to-end model validation remains incomplete |
+| **Limited** | ik KS: `IQ*_KS` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Reference dequantization plus materialized-dense path. Same limitation as ik K; packed geometry and decode tests are not a native GEMV/GEMM claim |
+| **Limited** | ik KSS/KL: `IQ4_KSS`, `IQ2_KL` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Reference dequantization plus materialized-dense path. Registered reference paths; no accelerated capability is advertised |
+| **Reference fallback** | ik KT: `IQ1_KT`, `IQ2_KT`, `IQ3_KT`, `IQ4_KT` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Software dequantization/materialized-dense reference fallback with one FP32 row-prefix per row. KT remains reference-fallback-only; no acceleration is claimed |
+| **Limited** | Trellis and related extended types: `TQ1_0`, `TQ2_0`, `Q2_0` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Registered reference dequantization and dense fallback. Type registration and focused CPU/reference checks do not establish acceleration |
+| **Limited** | Type-41 `Q1_0` / `Q1_0_G128` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Accepted as aliases only with geometry `(128, 18)`. Incompatible type-41 geometry is rejected; native runtime validation remains pending |
+| **Deferred** | `MXFP4`, `NVFP4` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not implemented. Do not advertise as supported |
 
 The standard baseline is retained from the upstream plugin. Added formats are
 implemented as Python/Triton/native CUDA/HIP ports only where the corresponding
