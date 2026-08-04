@@ -211,6 +211,13 @@ def check_model_outputs(
     )
 
 
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason=(
+        "End-to-end vLLM generation needs a visible GPU (CUDA or ROCm/HIP); "
+        f"torch.cuda.is_available()={torch.cuda.is_available()}"
+    ),
+)
 @pytest.mark.parametrize(
     "model",
     MODELS,
