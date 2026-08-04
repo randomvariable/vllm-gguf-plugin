@@ -1,0 +1,25 @@
+README.md
+  s_a35c62a3e8a532::t_033bf24ea9a53a 76
+  s_a35c62a3e8a532::t_8c8663b25ecb99 35-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ab6743de35860c5160f576d6882002ad228b3eeb",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
