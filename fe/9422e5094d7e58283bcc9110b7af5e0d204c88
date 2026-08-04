@@ -1,0 +1,110 @@
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-diffusion-dense-baseline.json
+  s_7921888852c5e1::t_1a854cbaa73c33 1
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-dense-linear-baseline.json
+  s_7921888852c5e1::t_1a854cbaa73c33 1
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-mtp-probe-passthrough-baseline.json
+  s_7921888852c5e1::t_1a854cbaa73c33 1
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-moe-fallback-baseline.json
+  s_7921888852c5e1::t_1a854cbaa73c33 1
+tests/phase_0b/test_plugin_dense_baseline_path_maps.py
+  s_dd632e124c63d3::t_82706272bc7a12 366
+  s_dd632e124c63d3::t_dea7fa6a9399b8 376,378
+  s_dd632e124c63d3::t_0eec7ac35806e5 113-120,125-129
+  s_c2662599f5329d::t_514ecd8689b81d 293
+  s_dd632e124c63d3::t_b50c306380d558 1,15,101-104,107-110,146-151,156-157,184,187-189,191-208,212,214-238,240-244,259,263-283,285,295-298,300-303,312-323,346,359,365,367-375,379,381
+  s_dd632e124c63d3::t_c57bea31356a22 5
+  s_7921888852c5e1::t_ac49702c9b44a5 310-311
+  s_09e445a6f44ca5::t_c7fb95912ee84f 289-291
+  s_dd632e124c63d3::t_9ee9b9983078aa 239
+  s_7429b010413d05::t_2c3d6d82b3bcf1 2-4,6-8,10-14,16-23,26-29,33-36,40-79,132-137,139-145,152-155,182-183,185-186,190,209-211,213,257-258,260-262,304-309,324-326
+  s_dd632e124c63d3::t_2c9b0cdda9ebcd 9
+  s_dd632e124c63d3::t_684b9b09cb6aa2 138,284
+  s_dd632e124c63d3::t_726b936d3d0e66 123
+  s_dd632e124c63d3::t_07adaceaff50b8 24-25,30-32,37-39,111-112,130-131,158-181,245-256,286-288,292
+  s_dd632e124c63d3::t_53ca2a58cd6f4a 121-122,124
+  s_7429b010413d05::t_ba48be18dfb3aa 80-100,105-106,327-345,347-358,360-364,380,382-383
+  s_dd632e124c63d3::t_82df9c9869fa77 294,299
+  s_7921888852c5e1::t_8297a78a1929ee 377
+tests/phase_0b/test_static_analysis_contract.py
+  s_d93709a97ce503::t_c28457417a01b4 1-11,17-18,22-65,89,105-106,115,121-127,134-151,155-162,164-166,183-196
+  s_d93709a97ce503::t_a55531c1a602a5 163
+  s_1fd2375520cfd4::t_11619e27b1843f 19-21,66-88,90-104,107-114,116-120,128-133,152-154,167-182
+  s_a35c62a3e8a532::t_d82873680c8587 12-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "fe9422e5094d7e58283bcc9110b7af5e0d204c88",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_09e445a6f44ca5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_038fdad8cffeL30umiGRBIdjId",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_1fd2375520cfd4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_038eb2b61ffe7l2k0sC4RVRtDO",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_7429b010413d05": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03a5c8a54ffenDfXNF1IlrY4s8",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_7921888852c5e1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03605dd89ffe3LN4L6GBKBJNg3",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    },
+    "s_c2662599f5329d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_038fb8e43ffeglc4SqAJ2eEpSv",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    },
+    "s_d93709a97ce503": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_03a951b98ffeOvpqzW233IUOas",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    },
+    "s_dd632e124c63d3": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_039229524ffeFdR4WlzPVy8OOQ",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": null
+    }
+  }
+}
