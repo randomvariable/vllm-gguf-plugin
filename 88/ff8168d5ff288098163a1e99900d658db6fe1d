@@ -1,0 +1,35 @@
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-moe-fallback-baseline.json
+  s_a35c62a3e8a532::t_5159a2a153a7d2 10,18,92,104,115,126,139,149,173,183,193,203
+  s_a35c62a3e8a532::t_b7695fe6d4ccc3 70,81
+  s_a35c62a3e8a532::t_f810cd26a8ff91 156,159,161
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-diffusion-dense-baseline.json
+  s_a35c62a3e8a532::t_f810cd26a8ff91 18,163,166
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-mtp-probe-passthrough-baseline.json
+  s_a35c62a3e8a532::t_f810cd26a8ff91 18,123,126
+validation/phase_0b/plugin_dense_baseline/plugin-rocmfpx-dense-linear-baseline.json
+  s_a35c62a3e8a532::t_f810cd26a8ff91 18,173,176
+tests/phase_0b/test_plugin_dense_baseline_path_maps.py
+  s_a35c62a3e8a532::t_14e2b43440df05 297-300
+  s_a35c62a3e8a532::t_e646167be56cce 292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "88ff8168d5ff288098163a1e99900d658db6fe1d",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
