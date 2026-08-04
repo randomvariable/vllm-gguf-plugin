@@ -1,0 +1,28 @@
+tests/test_rocmfpx_moe_type103_contract.py
+  s_a35c62a3e8a532::t_a2c818815c5afa 117-129
+  s_a35c62a3e8a532::t_c39226ca6b70dd 169-175
+  s_a35c62a3e8a532::t_4c7218b75de389 18,74-75,142-144,150-152
+  s_a35c62a3e8a532::t_fd781a76acd641 114
+  s_a35c62a3e8a532::t_1e184b7d438f6a 1-17,19-73,76-113,115-116,130-141,145-149,153-168,176-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ffa82f98d1f2f1f65a799a92ab62dd55ead09336",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
