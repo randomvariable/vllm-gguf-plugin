@@ -51,8 +51,13 @@ def _patch_gguf_enum():
     if hasattr(GGMLQuantizationType, "Q4_0_ROCMFP4"):
         return
 
-    # Build a new enum class with the extra members
-    existing = {m.name: m.value for m in GGMLQuantizationType}
+    # Build a new enum class with extra members.
+    # Iterate __members__ rather than the enum itself: iteration yields only
+    # canonical members, so aliases such as Q1_0_G128 (an alias of Q1_0, both
+    # type 41) would be silently dropped when the enum is rebuilt here.
+    existing = {
+        name: member.value for name, member in GGMLQuantizationType.__members__.items()
+    }
     existing["Q4_0_ROCMFP4"] = GGML_TYPE_Q4_0_ROCMFP4
     existing["Q4_0_ROCMFP4_FAST"] = GGML_TYPE_Q4_0_ROCMFP4_FAST
     existing["Q6_0_ROCMFPX"] = GGML_TYPE_Q6_0_ROCMFPX
@@ -74,6 +79,7 @@ def _patch_gguf_enum():
     gguf.GGMLQuantizationType = new_enum
     # Patch any submodule that has a local reference
     import sys
+
     for mod_name, mod in list(sys.modules.items()):
         if (
             mod_name

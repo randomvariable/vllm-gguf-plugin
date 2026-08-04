@@ -65,7 +65,11 @@ def _patch_gguf_enum() -> None:
         gguf.GGML_QUANT_SIZES.update(GGML_QUANT_SIZES)
         return
 
-    existing = {member.name: member.value for member in GGMLQuantizationType}
+    # Iterate __members__ so aliases (e.g. Q1_0_G128 aliasing Q1_0) survive the
+    # rebuild; plain enum iteration yields canonical members only.
+    existing = {
+        name: member.value for name, member in GGMLQuantizationType.__members__.items()
+    }
     existing.update(llama_types)
     new_enum = enum.IntEnum("GGMLQuantizationType", existing)
 

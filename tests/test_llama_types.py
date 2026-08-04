@@ -214,8 +214,11 @@ def _f16(value: float) -> bytes:
             GGML_TYPE_Q2_0,
             64,
             _f16(0.5) + bytes(range(16)),
+            # Native decode is (q - 1) * d (see dequantize_block_q2_0 in
+            # csrc/gguf/dequantize.cuh), so the block scale applies here just as
+            # it does for the Q1_0 case above.
             [
-                ((byte >> (2 * index)) & 3) - 1
+                (((byte >> (2 * index)) & 3) - 1) * 0.5
                 for byte in bytes(range(16))
                 for index in range(4)
             ],
