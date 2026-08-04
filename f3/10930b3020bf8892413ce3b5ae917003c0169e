@@ -1,0 +1,29 @@
+tests/test_llama_types.py
+  s_a35c62a3e8a532::t_eda65b0f805d0f 217-219,221
+vllm_gguf_plugin/rocmfpx_types.py
+  s_a35c62a3e8a532::t_971e1d49ea5fcd 54-58,60
+  s_a35c62a3e8a532::t_68a57227ef0419 59,82
+vllm_gguf_plugin/llama_types.py
+  s_a35c62a3e8a532::t_a3ce43c82ae193 68-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f310930b3020bf8892413ce3b5ae917003c0169e",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
