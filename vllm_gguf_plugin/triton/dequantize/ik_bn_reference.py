@@ -52,7 +52,18 @@ def dequantize_iq1_bn_reference(
     rows, blocks_per_row = _validate_row_storage(
         W, m, n, QK_IQ1BN, IQ1_BN_BLOCK_BYTES, 2
     )
-    scale = rows[:, :2].contiguous().view(torch.float16).to(torch.float32)
+    # IQ1_BN rows are 2 + 13 = 15 bytes wide, so rows[:, :2] inherits the odd
+    # row stride and .contiguous() is a no-op on a single row; the float16
+    # view then demands an even stride. Flatten the slice first so it
+    # reinterprets a stride-2 buffer.
+    scale = (
+        rows[:, :2]
+        .reshape(-1)
+        .contiguous()
+        .view(torch.float16)
+        .reshape(m, 1)
+        .to(torch.float32)
+    )
     blocks = rows[:, 2:].reshape(m, blocks_per_row, IQ1_BN_BLOCK_BYTES)
     ql = blocks[:, :, :12].to(torch.int32)
     extra = blocks[:, :, 12].to(torch.int32)
@@ -61,7 +72,8 @@ def dequantize_iq1_bn_reference(
     lanes = positions % 16
     q_index = groups * 3 + torch.minimum(lanes // 5, torch.tensor(2, device=W.device))
     q = ql[:, :, q_index]
-    q = torch.where(lanes == 15, extra[:, :, groups], q)
+    # extra is one byte/block reused for every lane==15 group; broadcast it.
+    q = torch.where(lanes == 15, extra[:, :, None], q)
     digit = torch.where(lanes == 15, groups, lanes % 5)
     multipliers = torch.tensor((81, 27, 9, 3, 1), device=W.device, dtype=torch.int32)
     v = q * multipliers[digit]
@@ -77,7 +89,7 @@ def dequantize_iq2_bn_reference(
     rows, blocks_per_row = _validate_row_storage(
         W, m, n, QK_IQ2BN, IQ2_BN_BLOCK_BYTES, 4
     )
-    scale = rows[:, :4].contiguous().view(torch.float32)
+    scale = rows[:, :4].reshape(-1).contiguous().view(torch.float32).reshape(m, 1)
     blocks = rows[:, 4:].reshape(m, blocks_per_row, IQ2_BN_BLOCK_BYTES)
     qs = blocks.to(torch.int32)
     positions = torch.arange(QK_IQ2BN, device=W.device)
