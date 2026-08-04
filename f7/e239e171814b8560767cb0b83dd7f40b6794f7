@@ -1,0 +1,30 @@
+tests/test_ik_k56_reference.py
+  s_a35c62a3e8a532::t_52f7be41611a81 27-29,48-50
+  s_a35c62a3e8a532::t_e42b51646e25b9 4,31-32,34-35,52-53,55-56,69-75
+tests/test_ik_k234_reference.py
+  s_a35c62a3e8a532::t_be2b0381de4c1e 8,45-47,63-66,81-84,115-118
+tests/test_ik_reference.py
+  s_a35c62a3e8a532::t_daa18dd1c7aae7 6
+  s_a35c62a3e8a532::t_23742cdf3d6e71 23-26,42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f7e239e171814b8560767cb0b83dd7f40b6794f7",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
