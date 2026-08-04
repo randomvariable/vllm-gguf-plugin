@@ -1,0 +1,28 @@
+vllm_gguf_plugin/triton/fused_moe/standard_quant/q8_0_rocmfpx.py
+  s_a35c62a3e8a532::t_9af49eb07527a9 87-88
+  s_a35c62a3e8a532::t_59b3591839b606 71-80,82-85
+  s_a35c62a3e8a532::t_42e6e05d0e039b 106-108,112
+  s_a35c62a3e8a532::t_2ec497acec542b 100-103
+  s_a35c62a3e8a532::t_0aef163b998d38 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "5f51aeed28cd6dff1603efe7603a383abbc3b255",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
