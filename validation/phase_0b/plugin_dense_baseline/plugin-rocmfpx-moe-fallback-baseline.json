@@ -15,7 +15,7 @@
     "envelope_id": "plugin-rocmfpx-moe-fallback-baseline-envelope",
     "side": "plugin"
   },
-  "artifact_hash": "21e74c29c0275fb05412ab9d063fa72471d72685df34eddd901cb8a29e5d040c",
+  "artifact_hash": "e88e4a5d22a6aa4a215194d89122d84a25273ef595657f196bd9ef9abe10c2e2",
   "artifact_id": "plugin-rocmfpx-moe-fallback-baseline",
   "comparator": {
     "artifact_id": "plugin-comparator-baseline",
@@ -153,12 +153,12 @@
     ]
   },
   "provenance": {
-    "commit_sha": "5a053c703bc2eab56053b14e750327d11bae317b",
+    "commit_sha": "35e144a6ffa130c36a2c6982cef6706275eac133",
     "extractor_version": "phase-0b-static/0.2",
     "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
-    "source_tree_sha256": "53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9",
+    "source_tree_sha256": "6c77d3c46d1cd116e5e8c52c2b0ccb0c53b0c9d3c5265dbf3c912eaf63a7db83",
     "sources": {
-      "vllm_gguf_plugin/quantization/fused_moe.py": "0fdbacb2379ab25fa49b036e410032196edab9138d9da2545cc2721091664be3"
+      "vllm_gguf_plugin/quantization/fused_moe.py": "65e14b402ff1c867315fb8784bf62d537a84158d9c000d71066283aa1c5f0faf"
     }
   },
   "schema_version": "0B.1",

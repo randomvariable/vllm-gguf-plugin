@@ -15,7 +15,7 @@
     "envelope_id": "plugin-rocmfpx-mtp-probe-passthrough-baseline-envelope",
     "side": "plugin"
   },
-  "artifact_hash": "831ef1758a8548acc09fbf22a508635b0883823cec95b1408751306ad1f4f7ec",
+  "artifact_hash": "f606e2f441aa460375721105d45ca73e9d6fc1cb311043413330b9d24adaf31a",
   "artifact_id": "plugin-rocmfpx-mtp-probe-passthrough-baseline",
   "comparator": {
     "artifact_id": "plugin-comparator-baseline",
@@ -120,10 +120,10 @@
     ]
   },
   "provenance": {
-    "commit_sha": "5a053c703bc2eab56053b14e750327d11bae317b",
+    "commit_sha": "35e144a6ffa130c36a2c6982cef6706275eac133",
     "extractor_version": "phase-0b-static/0.2",
     "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
-    "source_tree_sha256": "53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9",
+    "source_tree_sha256": "6c77d3c46d1cd116e5e8c52c2b0ccb0c53b0c9d3c5265dbf3c912eaf63a7db83",
     "sources": {
       "vllm_gguf_plugin/plugin.py": "a84f3b4a557d7a74a053c68726aa1fed03fe7e82f48034f3ca90695b40e8d65a"
     }
