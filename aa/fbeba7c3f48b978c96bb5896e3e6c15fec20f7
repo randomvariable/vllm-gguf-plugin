@@ -1,0 +1,34 @@
+vllm_gguf_plugin/quantization/fused_moe.py
+  s_a35c62a3e8a532::t_54d6fbbc88c0c7 56-60,63-64,103-107
+  s_a35c62a3e8a532::t_8f72e5d4c67aa2 61
+  s_a35c62a3e8a532::t_82289d8ee2375e 31
+tests/test_rocmfpx_moe_guard.py
+  s_a35c62a3e8a532::t_967613f6f96ae1 1-8,14-17,20-23,25-39,41-43,45,50-55,76-93,102-104,109-119,121-128,132-143
+  s_a35c62a3e8a532::t_588afa62a4c570 9-13,40,44,46-49,56-59,68-73,106-108,120,129,131
+  s_a35c62a3e8a532::t_8f72e5d4c67aa2 18-19,105,130
+  s_a35c62a3e8a532::t_cf0dfa403f5da9 24
+  s_a35c62a3e8a532::t_20c18a79d7d9dc 74
+  s_a35c62a3e8a532::t_c145cd30d963d4 60-67,75
+  s_a35c62a3e8a532::t_f9d978bdaf7f72 94-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "aafbeba7c3f48b978c96bb5896e3e6c15fec20f7",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
