@@ -1,0 +1,32 @@
+vllm_gguf_plugin/triton/dequantize/ik_k234_reference.py
+  s_a35c62a3e8a532::t_0233e5c2e8e127 85-88,115-120,149-153
+  s_a35c62a3e8a532::t_6e69829c5dbb5c 82-84,112-114,146-148
+vllm_gguf_plugin/triton/dequantize/ik_k56_reference.py
+  s_a35c62a3e8a532::t_4cea77490653aa 244-249,284-288
+  s_a35c62a3e8a532::t_0573979fdc1f88 266-269,300-303
+vllm_gguf_plugin/triton/dequantize/ik_reference.py
+  s_a35c62a3e8a532::t_194a1713741507 55-58,60
+  s_a35c62a3e8a532::t_b1cac8f602bede 33-35
+  s_a35c62a3e8a532::t_99261534ec0736 61-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "b4d088d99ef39eaed13cd02468672b432a33e9ff",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
