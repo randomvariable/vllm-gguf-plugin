@@ -1,1 +1,210 @@
-{"arm":{"arm_id":"plugin-rocmfpx-diffusion-dense-baseline-arm","decision":{"fail_closed":true,"selected_symbol_id":"_dense_weight_from_gguf_qweight","selected_symbol_location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":141,"symbol_id":"_dense_weight_from_gguf_qweight"},"terminal":"selected"},"envelope_id":"plugin-rocmfpx-diffusion-dense-baseline-envelope","side":"plugin"},"artifact_hash":"77c1ff1de685891954d50661cb220ab47a34cca10177c2bfde53ac52f0dbd673","artifact_id":"plugin-rocmfpx-diffusion-dense-baseline","comparator":{"artifact_id":"plugin-comparator-baseline","kind":"rocmfpx_model_author_fork"},"compiler_resources":{"registers_per_thread":{"reason":"Not provable from source.","value":null}},"envelope":{"architecture":"unrestricted","dtype":"float32","envelope_id":"plugin-rocmfpx-diffusion-dense-baseline-envelope","format":"Q4_0_ROCMFP4_FAST","moe":{"enabled":false,"experts":null},"mtp":{"enabled":false,"layers":null},"operation":"diffusion","sharding":{"expert_parallel":1,"tensor_parallel":1},"side":"plugin"},"evidence":{"evidence":["Exact source inspection at current checkout."],"limitations":["Static source only; no runtime allocator peak measured.","Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.","Architecture selection absent; comparator checkout/build and target-host validation blocked."],"state":"captured"},"facts":{"allocations":[{"bytes":"M * K * sizeof(dtype)","created":true,"kind":"dense_materialization","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":176,"symbol_id":"_gguf_weights_for_loadable_names"}}],"byte_formulas":[{"formula":"M * ceil(K / 32) * 17","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"},"name":"quantized_block_bytes"}],"dispatch":[{"decision":"source path","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"}},{"decision":"sharded qweight slice contiguous copy","location":{"column":1,"file":"vllm_gguf_plugin/quantization/diffusion_config.py","line":69,"symbol_id":"DiffusionGGUFLinearMethod.apply"}},{"decision":"sharded output concatenation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/diffusion_config.py","line":72,"symbol_id":"DiffusionGGUFLinearMethod.apply"}}],"mapping":[{"kind":"tensor_parallel","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"},"mapping":"source shard mapping; no architecture selection"}],"scale_flow":[{"location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"},"operation":"type 101 one-byte companion scale"}],"storage_reads":[{"bytes":"M * ceil(K / 32) * 16","kind":"packed_weight","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"}},{"bytes":"M * ceil(K / 32) * 1","kind":"companion_scale","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":123,"symbol_id":"_dense_weight_from_gguf_qweight"}}]},"provenance":{"commit_sha":"7b36be1a41a473b5d20664d15d1af682858ad555","extractor_version":"phase-0b-static/0.2","repo_url":"https://github.com/randomvariable/vllm-gguf-plugin.git","source_tree_sha256":"53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9","sources":{"vllm_gguf_plugin/quantization/diffusion_config.py":"7cff2b59f9277343520e864a11ce33457e322d1800027e4b66e934c85080c126","vllm_gguf_plugin/quantization/linear.py":"7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7","vllm_gguf_plugin/rocmfpx_types.py":"8f051bcfd35e6fc2095d52f13f05c3acea8733d957458a5735beaa7ffdeeab4f","vllm_gguf_plugin/triton/dequantize/interface.py":"38b781ac781f777834c0587b347021a6be7b7b0f7de40985520259bdaef9490f","vllm_gguf_plugin/weights_adapter/diffusion/loader.py":"35dbcce672e1ba11374147a6ad0c6365b7dc11a2da4def075435d51e1f396035"}},"schema_version":"0B.1","semantic":{"allocations":[{"classification":"dense_materialization","lifetime":"dense_model_weight","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":176,"symbol_id":"_gguf_weights_for_loadable_names"}}],"architecture":{"unrestricted":true},"route":{"callee":"ggml_dequantize_triton","output_dtype":"float32","predicate":"not qweight.is_cuda","quant_type":101},"type_100_fallback":{"callee":"gguf.dequantize","location":{"column":1,"file":"vllm_gguf_plugin/weights_adapter/diffusion/loader.py","line":142,"symbol_id":"_dense_weight_from_gguf_qweight"},"quant_type":100}},"side":"plugin"}
+{
+  "arm": {
+    "arm_id": "plugin-rocmfpx-diffusion-dense-baseline-arm",
+    "decision": {
+      "fail_closed": true,
+      "selected_symbol_id": "_dense_weight_from_gguf_qweight",
+      "selected_symbol_location": {
+        "column": 1,
+        "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+        "line": 141,
+        "symbol_id": "_dense_weight_from_gguf_qweight"
+      },
+      "terminal": "selected"
+    },
+    "envelope_id": "plugin-rocmfpx-diffusion-dense-baseline-envelope",
+    "side": "plugin"
+  },
+  "artifact_hash": "bf8200703c06c53ddf4dfb6903aae040912c8cac27dbdda92519459e1e5e59c8",
+  "artifact_id": "plugin-rocmfpx-diffusion-dense-baseline",
+  "comparator": {
+    "artifact_id": "plugin-comparator-baseline",
+    "kind": "rocmfpx_model_author_fork"
+  },
+  "compiler_resources": {
+    "registers_per_thread": {
+      "reason": "Not provable from source.",
+      "value": null
+    }
+  },
+  "envelope": {
+    "architecture": "unrestricted",
+    "dtype": "float32",
+    "envelope_id": "plugin-rocmfpx-diffusion-dense-baseline-envelope",
+    "format": "Q4_0_ROCMFP4_FAST",
+    "moe": {
+      "enabled": false,
+      "experts": null
+    },
+    "mtp": {
+      "enabled": false,
+      "layers": null
+    },
+    "operation": "diffusion",
+    "sharding": {
+      "expert_parallel": 1,
+      "tensor_parallel": 1
+    },
+    "side": "plugin"
+  },
+  "evidence": {
+    "evidence": [
+      "Exact source inspection at current checkout."
+    ],
+    "limitations": [
+      "Static source only; no runtime allocator peak measured.",
+      "Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.",
+      "Architecture selection absent; comparator checkout/build and target-host validation blocked."
+    ],
+    "state": "captured"
+  },
+  "facts": {
+    "allocations": [
+      {
+        "bytes": "M * K * sizeof(dtype)",
+        "created": true,
+        "kind": "dense_materialization",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 176,
+          "symbol_id": "_gguf_weights_for_loadable_names"
+        }
+      }
+    ],
+    "byte_formulas": [
+      {
+        "formula": "M * ceil(K / 32) * 17",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        },
+        "name": "quantized_block_bytes"
+      }
+    ],
+    "dispatch": [
+      {
+        "decision": "source path",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        }
+      },
+      {
+        "decision": "sharded qweight slice contiguous copy",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/diffusion_config.py",
+          "line": 69,
+          "symbol_id": "DiffusionGGUFLinearMethod.apply"
+        }
+      },
+      {
+        "decision": "sharded output concatenation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/diffusion_config.py",
+          "line": 72,
+          "symbol_id": "DiffusionGGUFLinearMethod.apply"
+        }
+      }
+    ],
+    "mapping": [
+      {
+        "kind": "tensor_parallel",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        },
+        "mapping": "source shard mapping; no architecture selection"
+      }
+    ],
+    "scale_flow": [
+      {
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        },
+        "operation": "type 101 one-byte companion scale"
+      }
+    ],
+    "storage_reads": [
+      {
+        "bytes": "M * ceil(K / 32) * 16",
+        "kind": "packed_weight",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        }
+      },
+      {
+        "bytes": "M * ceil(K / 32) * 1",
+        "kind": "companion_scale",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 123,
+          "symbol_id": "_dense_weight_from_gguf_qweight"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "commit_sha": "5a053c703bc2eab56053b14e750327d11bae317b",
+    "extractor_version": "phase-0b-static/0.2",
+    "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
+    "source_tree_sha256": "53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9",
+    "sources": {
+      "vllm_gguf_plugin/quantization/diffusion_config.py": "7cff2b59f9277343520e864a11ce33457e322d1800027e4b66e934c85080c126",
+      "vllm_gguf_plugin/quantization/linear.py": "7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7",
+      "vllm_gguf_plugin/rocmfpx_types.py": "8f051bcfd35e6fc2095d52f13f05c3acea8733d957458a5735beaa7ffdeeab4f",
+      "vllm_gguf_plugin/triton/dequantize/interface.py": "38b781ac781f777834c0587b347021a6be7b7b0f7de40985520259bdaef9490f",
+      "vllm_gguf_plugin/weights_adapter/diffusion/loader.py": "35dbcce672e1ba11374147a6ad0c6365b7dc11a2da4def075435d51e1f396035"
+    }
+  },
+  "schema_version": "0B.1",
+  "semantic": {
+    "allocations": [
+      {
+        "classification": "dense_materialization",
+        "lifetime": "dense_model_weight",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+          "line": 176,
+          "symbol_id": "_gguf_weights_for_loadable_names"
+        }
+      }
+    ],
+    "architecture": {
+      "unrestricted": true
+    },
+    "route": {
+      "callee": "ggml_dequantize_triton",
+      "output_dtype": "float32",
+      "predicate": "not qweight.is_cuda",
+      "quant_type": 101
+    },
+    "type_100_fallback": {
+      "callee": "gguf.dequantize",
+      "location": {
+        "column": 1,
+        "file": "vllm_gguf_plugin/weights_adapter/diffusion/loader.py",
+        "line": 142,
+        "symbol_id": "_dense_weight_from_gguf_qweight"
+      },
+      "quant_type": 100
+    }
+  },
+  "side": "plugin"
+}

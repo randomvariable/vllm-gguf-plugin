@@ -1,1 +1,213 @@
-{"arm":{"arm_id":"plugin-rocmfpx-moe-fallback-baseline-arm","decision":{"fail_closed":true,"selected_symbol_id":"_fused_moe_gguf","selected_symbol_location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"},"terminal":"selected"},"envelope_id":"plugin-rocmfpx-moe-fallback-baseline-envelope","side":"plugin"},"artifact_hash":"bdcbb6df9c8a77199fe0fc6f5427217b2d220e0333ee934151ecf799dd21ebec","artifact_id":"plugin-rocmfpx-moe-fallback-baseline","comparator":{"artifact_id":"plugin-comparator-baseline","kind":"rocmfpx_model_author_fork"},"compiler_resources":{"registers_per_thread":{"reason":"Not provable from source.","value":null}},"envelope":{"architecture":"unrestricted","dtype":"float16","envelope_id":"plugin-rocmfpx-moe-fallback-baseline-envelope","format":"Q4_0_ROCMFP4","moe":{"enabled":true,"experts":null},"mtp":{"enabled":false,"layers":null},"operation":"moe","sharding":{"expert_parallel":1,"tensor_parallel":1},"side":"plugin"},"evidence":{"evidence":["Exact source inspection at current checkout."],"limitations":["Static source only; no runtime allocator peak measured.","Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.","Architecture selection absent; comparator checkout/build and target-host validation blocked."],"state":"captured"},"facts":{"allocations":[{"bytes":"M * K * sizeof(dtype)","created":true,"kind":"dense_weight_temporary","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":123,"symbol_id":"_fused_moe_gguf"}},{"bytes":"M * K * sizeof(dtype)","created":true,"kind":"dense_weight_temporary","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":125,"symbol_id":"_fused_moe_gguf"}}],"byte_formulas":[{"formula":"M * ceil(K / 32) * 18","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"},"name":"quantized_block_bytes"}],"dispatch":[{"decision":"slow MoE fallback","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"}}],"mapping":[{"kind":"tensor_parallel","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"},"mapping":"source shard mapping; no architecture selection"}],"scale_flow":[{"location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"},"operation":"type 100 companion scale"}],"storage_reads":[{"bytes":"M * ceil(K / 32) * 16","kind":"packed_weight","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"}},{"bytes":"M * ceil(K / 32) * 2","kind":"companion_scale","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":34,"symbol_id":"_fused_moe_gguf"}}]},"provenance":{"commit_sha":"7b36be1a41a473b5d20664d15d1af682858ad555","extractor_version":"phase-0b-static/0.2","repo_url":"https://github.com/randomvariable/vllm-gguf-plugin.git","source_tree_sha256":"53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9","sources":{"vllm_gguf_plugin/quantization/fused_moe.py":"0fdbacb2379ab25fa49b036e410032196edab9138d9da2545cc2721091664be3"}},"schema_version":"0B.1","semantic":{"allocations":[{"classification":"dense_materialization","lifetime":"one_moe_expert_evaluation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":123,"symbol_id":"_fused_moe_gguf"}},{"classification":"activation","lifetime":"one_moe_expert_evaluation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":124,"symbol_id":"_fused_moe_gguf"}},{"classification":"dense_materialization","lifetime":"one_moe_expert_evaluation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":125,"symbol_id":"_fused_moe_gguf"}},{"classification":"output_accumulation","lifetime":"one_token_moe_evaluation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/fused_moe.py","line":129,"symbol_id":"_fused_moe_gguf"}}],"architecture":{"unrestricted":true}},"side":"plugin"}
+{
+  "arm": {
+    "arm_id": "plugin-rocmfpx-moe-fallback-baseline-arm",
+    "decision": {
+      "fail_closed": true,
+      "selected_symbol_id": "_fused_moe_gguf",
+      "selected_symbol_location": {
+        "column": 1,
+        "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+        "line": 34,
+        "symbol_id": "_fused_moe_gguf"
+      },
+      "terminal": "selected"
+    },
+    "envelope_id": "plugin-rocmfpx-moe-fallback-baseline-envelope",
+    "side": "plugin"
+  },
+  "artifact_hash": "21e74c29c0275fb05412ab9d063fa72471d72685df34eddd901cb8a29e5d040c",
+  "artifact_id": "plugin-rocmfpx-moe-fallback-baseline",
+  "comparator": {
+    "artifact_id": "plugin-comparator-baseline",
+    "kind": "rocmfpx_model_author_fork"
+  },
+  "compiler_resources": {
+    "registers_per_thread": {
+      "reason": "Not provable from source.",
+      "value": null
+    }
+  },
+  "envelope": {
+    "architecture": "unrestricted",
+    "dtype": "float16",
+    "envelope_id": "plugin-rocmfpx-moe-fallback-baseline-envelope",
+    "format": "Q4_0_ROCMFP4",
+    "moe": {
+      "enabled": true,
+      "experts": null
+    },
+    "mtp": {
+      "enabled": false,
+      "layers": null
+    },
+    "operation": "moe",
+    "sharding": {
+      "expert_parallel": 1,
+      "tensor_parallel": 1
+    },
+    "side": "plugin"
+  },
+  "evidence": {
+    "evidence": [
+      "Exact source inspection at current checkout."
+    ],
+    "limitations": [
+      "Static source only; no runtime allocator peak measured.",
+      "Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.",
+      "Architecture selection absent; comparator checkout/build and target-host validation blocked."
+    ],
+    "state": "captured"
+  },
+  "facts": {
+    "allocations": [
+      {
+        "bytes": "M * K * sizeof(dtype)",
+        "created": true,
+        "kind": "dense_weight_temporary",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 123,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      },
+      {
+        "bytes": "M * K * sizeof(dtype)",
+        "created": true,
+        "kind": "dense_weight_temporary",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 125,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      }
+    ],
+    "byte_formulas": [
+      {
+        "formula": "M * ceil(K / 32) * 18",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        },
+        "name": "quantized_block_bytes"
+      }
+    ],
+    "dispatch": [
+      {
+        "decision": "slow MoE fallback",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      }
+    ],
+    "mapping": [
+      {
+        "kind": "tensor_parallel",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        },
+        "mapping": "source shard mapping; no architecture selection"
+      }
+    ],
+    "scale_flow": [
+      {
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        },
+        "operation": "type 100 companion scale"
+      }
+    ],
+    "storage_reads": [
+      {
+        "bytes": "M * ceil(K / 32) * 16",
+        "kind": "packed_weight",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      },
+      {
+        "bytes": "M * ceil(K / 32) * 2",
+        "kind": "companion_scale",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 34,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "commit_sha": "5a053c703bc2eab56053b14e750327d11bae317b",
+    "extractor_version": "phase-0b-static/0.2",
+    "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
+    "source_tree_sha256": "53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9",
+    "sources": {
+      "vllm_gguf_plugin/quantization/fused_moe.py": "0fdbacb2379ab25fa49b036e410032196edab9138d9da2545cc2721091664be3"
+    }
+  },
+  "schema_version": "0B.1",
+  "semantic": {
+    "allocations": [
+      {
+        "classification": "dense_materialization",
+        "lifetime": "one_moe_expert_evaluation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 123,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      },
+      {
+        "classification": "activation",
+        "lifetime": "one_moe_expert_evaluation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 124,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      },
+      {
+        "classification": "dense_materialization",
+        "lifetime": "one_moe_expert_evaluation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 125,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      },
+      {
+        "classification": "output_accumulation",
+        "lifetime": "one_token_moe_evaluation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/fused_moe.py",
+          "line": 129,
+          "symbol_id": "_fused_moe_gguf"
+        }
+      }
+    ],
+    "architecture": {
+      "unrestricted": true
+    }
+  },
+  "side": "plugin"
+}

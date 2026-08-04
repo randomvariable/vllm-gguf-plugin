@@ -1,1 +1,200 @@
-{"arm":{"arm_id":"plugin-rocmfpx-dense-linear-baseline-arm","decision":{"fail_closed":true,"selected_symbol_id":"_fused_mul_mat_gguf","selected_symbol_location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"},"terminal":"selected"},"envelope_id":"plugin-rocmfpx-dense-linear-baseline-envelope","side":"plugin"},"artifact_hash":"2b92e81be7a39ec5c014c68e2abc0fc3ba647c70e162151102aa7d6a609f230f","artifact_id":"plugin-rocmfpx-dense-linear-baseline","comparator":{"artifact_id":"plugin-comparator-baseline","kind":"rocmfpx_model_author_fork"},"compiler_resources":{"registers_per_thread":{"reason":"Not provable from source.","value":null}},"envelope":{"architecture":"unrestricted","dtype":"float16","envelope_id":"plugin-rocmfpx-dense-linear-baseline-envelope","format":"Q4_0_ROCMFP4","moe":{"enabled":false,"experts":null},"mtp":{"enabled":false,"layers":null},"operation":"dense_linear","sharding":{"expert_parallel":1,"tensor_parallel":1},"side":"plugin"},"evidence":{"evidence":["Exact source inspection at current checkout."],"limitations":["Static source only; no runtime allocator peak measured.","Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.","Architecture selection absent; comparator checkout/build and target-host validation blocked."],"state":"captured"},"facts":{"allocations":[{"bytes":"M * K * sizeof(dtype)","created":true,"kind":"dense_weight_temporary","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"}}],"byte_formulas":[{"formula":"M * ceil(K / 32) * 18","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"},"name":"quantized_block_bytes"},{"formula":"M * K * sizeof(dtype)","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"},"name":"dense_weight_bytes"}],"dispatch":[{"decision":"source path","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"}},{"decision":"sharded qweight slice contiguous copy","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":318,"symbol_id":"GGUFLinearMethod.apply"}},{"decision":"sharded output concatenation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":321,"symbol_id":"GGUFLinearMethod.apply"}}],"mapping":[{"kind":"tensor_parallel","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"},"mapping":"source shard mapping; no architecture selection"}],"scale_flow":[{"location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"},"operation":"type 100 companion scale"}],"storage_reads":[{"bytes":"M * ceil(K / 32) * 16","kind":"packed_weight","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"}},{"bytes":"M * ceil(K / 32) * 2","kind":"companion_scale","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"}}]},"provenance":{"commit_sha":"7b36be1a41a473b5d20664d15d1af682858ad555","extractor_version":"phase-0b-static/0.2","repo_url":"https://github.com/randomvariable/vllm-gguf-plugin.git","source_tree_sha256":"53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9","sources":{"vllm_gguf_plugin/quantization/linear.py":"7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7"}},"schema_version":"0B.1","semantic":{"allocations":[{"classification":"dense_materialization","lifetime":"one_linear_operation","location":{"column":1,"file":"vllm_gguf_plugin/quantization/linear.py","line":39,"symbol_id":"_fused_mul_mat_gguf"}}],"architecture":{"unrestricted":true}},"side":"plugin"}
+{
+  "arm": {
+    "arm_id": "plugin-rocmfpx-dense-linear-baseline-arm",
+    "decision": {
+      "fail_closed": true,
+      "selected_symbol_id": "_fused_mul_mat_gguf",
+      "selected_symbol_location": {
+        "column": 1,
+        "file": "vllm_gguf_plugin/quantization/linear.py",
+        "line": 39,
+        "symbol_id": "_fused_mul_mat_gguf"
+      },
+      "terminal": "selected"
+    },
+    "envelope_id": "plugin-rocmfpx-dense-linear-baseline-envelope",
+    "side": "plugin"
+  },
+  "artifact_hash": "cd798d56a4cd6115b5d11b2a602c069b00ce1f29228d3b9d69ca6d466094f26f",
+  "artifact_id": "plugin-rocmfpx-dense-linear-baseline",
+  "comparator": {
+    "artifact_id": "plugin-comparator-baseline",
+    "kind": "rocmfpx_model_author_fork"
+  },
+  "compiler_resources": {
+    "registers_per_thread": {
+      "reason": "Not provable from source.",
+      "value": null
+    }
+  },
+  "envelope": {
+    "architecture": "unrestricted",
+    "dtype": "float16",
+    "envelope_id": "plugin-rocmfpx-dense-linear-baseline-envelope",
+    "format": "Q4_0_ROCMFP4",
+    "moe": {
+      "enabled": false,
+      "experts": null
+    },
+    "mtp": {
+      "enabled": false,
+      "layers": null
+    },
+    "operation": "dense_linear",
+    "sharding": {
+      "expert_parallel": 1,
+      "tensor_parallel": 1
+    },
+    "side": "plugin"
+  },
+  "evidence": {
+    "evidence": [
+      "Exact source inspection at current checkout."
+    ],
+    "limitations": [
+      "Static source only; no runtime allocator peak measured.",
+      "Commit SHA identifies HEAD; dirty-tree changes represented in source hashes, not commit SHA.",
+      "Architecture selection absent; comparator checkout/build and target-host validation blocked."
+    ],
+    "state": "captured"
+  },
+  "facts": {
+    "allocations": [
+      {
+        "bytes": "M * K * sizeof(dtype)",
+        "created": true,
+        "kind": "dense_weight_temporary",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        }
+      }
+    ],
+    "byte_formulas": [
+      {
+        "formula": "M * ceil(K / 32) * 18",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        },
+        "name": "quantized_block_bytes"
+      },
+      {
+        "formula": "M * K * sizeof(dtype)",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        },
+        "name": "dense_weight_bytes"
+      }
+    ],
+    "dispatch": [
+      {
+        "decision": "source path",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        }
+      },
+      {
+        "decision": "sharded qweight slice contiguous copy",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 318,
+          "symbol_id": "GGUFLinearMethod.apply"
+        }
+      },
+      {
+        "decision": "sharded output concatenation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 321,
+          "symbol_id": "GGUFLinearMethod.apply"
+        }
+      }
+    ],
+    "mapping": [
+      {
+        "kind": "tensor_parallel",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        },
+        "mapping": "source shard mapping; no architecture selection"
+      }
+    ],
+    "scale_flow": [
+      {
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        },
+        "operation": "type 100 companion scale"
+      }
+    ],
+    "storage_reads": [
+      {
+        "bytes": "M * ceil(K / 32) * 16",
+        "kind": "packed_weight",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        }
+      },
+      {
+        "bytes": "M * ceil(K / 32) * 2",
+        "kind": "companion_scale",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "commit_sha": "5a053c703bc2eab56053b14e750327d11bae317b",
+    "extractor_version": "phase-0b-static/0.2",
+    "repo_url": "https://github.com/randomvariable/vllm-gguf-plugin.git",
+    "source_tree_sha256": "53c157eef04e11128b993b56a114a9a3725766c8a9ad2965f16d6a948b7612e9",
+    "sources": {
+      "vllm_gguf_plugin/quantization/linear.py": "7d67db256bb7df4abbefb35f7ea0ccc52de372230dd2ba609c8c2cec41ffe0b7"
+    }
+  },
+  "schema_version": "0B.1",
+  "semantic": {
+    "allocations": [
+      {
+        "classification": "dense_materialization",
+        "lifetime": "one_linear_operation",
+        "location": {
+          "column": 1,
+          "file": "vllm_gguf_plugin/quantization/linear.py",
+          "line": 39,
+          "symbol_id": "_fused_mul_mat_gguf"
+        }
+      }
+    ],
+    "architecture": {
+      "unrestricted": true
+    }
+  },
+  "side": "plugin"
+}
