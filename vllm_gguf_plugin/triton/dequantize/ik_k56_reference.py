@@ -241,8 +241,12 @@ def dequantize_iq5_k_reference(
     codebook = _IQ5_CODEBOOK.to(W.device)
     d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).to(torch.float32)
     extra = blocks[:, 2].to(torch.int32) | (blocks[:, 3].to(torch.int32) << 8)
-    scales_h, scales_l = blocks[:, 4:8], blocks[:, 8:16]
-    qs, qh = blocks[:, 16:144], blocks[:, 144:176]
+    # Promote to int32 before arithmetic: uint8 wraps on the -32 bias and on
+    # left shifts, silently corrupting every scale and packed code.
+    scales_h = blocks[:, 4:8].to(torch.int32)
+    scales_l = blocks[:, 8:16].to(torch.int32)
+    qs = blocks[:, 16:144].to(torch.int32)
+    qh = blocks[:, 144:176].to(torch.int32)
     groups = []
     for ib32 in range(8):
         ib64, hi = ib32 // 2, ib32 & 1
@@ -259,8 +263,10 @@ def dequantize_iq5_k_reference(
         q2 = (source[:, 16:] >> (4 if hi else 0)) & 15
         q1 |= ((high[:, :16] >> shift) & (2 if hi else 1)) << (3 if hi else 4)
         q2 |= ((high[:, 16:] >> shift) & (2 if hi else 1)) << (3 if hi else 4)
-        values1 = codebook[(code & 1) * 32 + q1]
-        values2 = codebook[(code & 2) * 16 + q2]
+        # code is (nblocks,) while q1/q2 are (nblocks, 16): the offset must be
+        # unsqueezed or broadcasting only works for a single block.
+        values1 = codebook[((code & 1) * 32)[:, None] + q1]
+        values2 = codebook[((code & 2) * 16)[:, None] + q2]
         groups.append(
             torch.cat((dl1[:, None] * values1, dl2[:, None] * values2), dim=1)
         )
@@ -275,7 +281,11 @@ def dequantize_iq6_k_reference(
     codebook = _IQ6_CODEBOOK.to(W.device)
     d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).to(torch.float32)
     extra = blocks[:, 2].to(torch.int32) | (blocks[:, 3].to(torch.int32) << 8)
-    scales, qs, qh = blocks[:, 4:20], blocks[:, 20:148], blocks[:, 148:212]
+    # block_iq6_k.scales is int8_t: reinterpret before widening, otherwise
+    # negative scales read back as 128..255.
+    scales = blocks[:, 4:20].contiguous().view(torch.int8).to(torch.int32)
+    qs = blocks[:, 20:148].to(torch.int32)
+    qh = blocks[:, 148:212].to(torch.int32)
     groups = []
     for ib32 in range(8):
         ib64, hi = ib32 // 2, ib32 & 1
@@ -287,8 +297,10 @@ def dequantize_iq6_k_reference(
         q1 |= ((high[:, :16] >> shift) & (12 if hi else 3)) << (2 if hi else 4)
         q2 |= ((high[:, 16:] >> shift) & (12 if hi else 3)) << (2 if hi else 4)
         code = extra >> (4 * ib64 + 2 * hi)
-        values1 = codebook[(code & 1) * 64 + q1]
-        values2 = codebook[(code & 2) * 32 + q2]
+        # code is (nblocks,) while q1/q2 are (nblocks, 16): the offset must be
+        # unsqueezed or broadcasting only works for a single block.
+        values1 = codebook[((code & 1) * 64)[:, None] + q1]
+        values2 = codebook[((code & 2) * 32)[:, None] + q2]
         groups.append(
             torch.cat(
                 (

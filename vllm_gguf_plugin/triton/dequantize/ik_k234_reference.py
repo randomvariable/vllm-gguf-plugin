@@ -79,10 +79,13 @@ def dequantize_iq2_k_reference(
     W: torch.Tensor, m: int, n: int, dtype: torch.dtype | None = None
 ) -> torch.Tensor:
     blocks = _validate(W, m, n, IQ2_K_BLOCK_BYTES)
-    d = blocks[:, :2].contiguous().view(torch.float16).float()
-    extra = blocks[:, 2] | (blocks[:, 3] << 8)
-    scales = blocks[:, 4:12]
-    qs = blocks[:, 12:]
+    # .view(float16) yields (nblocks, 1); without squeeze, d[:, None] is rank 3
+    # and broadcasts into an (nblocks, nblocks, 32) outer product.
+    d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).float()
+    # uint8 arithmetic wraps: <<8 truncates to 0 and the -8 bias underflows.
+    extra = blocks[:, 2].to(torch.int32) | (blocks[:, 3].to(torch.int32) << 8)
+    scales = blocks[:, 4:12].to(torch.int32)
+    qs = blocks[:, 12:].to(torch.int32)
     values = []
     for ib in range(8):
         packed = qs[:, (ib // 4) * 32 : (ib // 4 + 1) * 32]
@@ -106,10 +109,15 @@ def dequantize_iq3_k_reference(
     W: torch.Tensor, m: int, n: int, dtype: torch.dtype | None = None
 ) -> torch.Tensor:
     blocks = _validate(W, m, n, IQ3_K_BLOCK_BYTES)
-    d = blocks[:, :2].contiguous().view(torch.float16).float()
-    extra = blocks[:, 2] | (blocks[:, 3] << 8)
-    scales_h = blocks[:, 4] | (blocks[:, 5] << 8)
-    scales_l, qs, qh = blocks[:, 6:14], blocks[:, 14:78], blocks[:, 78:]
+    # .view(float16) yields (nblocks, 1); without squeeze, d[:, None] is rank 3
+    # and broadcasts into an (nblocks, nblocks, 32) outer product.
+    d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).float()
+    # uint8 arithmetic wraps: <<8 truncates to 0 and negated scales underflow.
+    extra = blocks[:, 2].to(torch.int32) | (blocks[:, 3].to(torch.int32) << 8)
+    scales_h = blocks[:, 4].to(torch.int32) | (blocks[:, 5].to(torch.int32) << 8)
+    scales_l = blocks[:, 6:14].to(torch.int32)
+    qs = blocks[:, 14:78].to(torch.int32)
+    qh = blocks[:, 78:].to(torch.int32)
     values = []
     table = _IQ3NL_VALUES.to(W.device)
     for ib in range(8):
@@ -135,9 +143,14 @@ def dequantize_iq4_k_reference(
     W: torch.Tensor, m: int, n: int, dtype: torch.dtype | None = None
 ) -> torch.Tensor:
     blocks = _validate(W, m, n, IQ4_K_BLOCK_BYTES)
-    d = blocks[:, :2].contiguous().view(torch.float16).float()
-    extra = blocks[:, 2] | (blocks[:, 3] << 8)
-    scales_h, scales_l, qs = blocks[:, 4:8], blocks[:, 8:16], blocks[:, 16:]
+    # .view(float16) yields (nblocks, 1); without squeeze, d[:, None] is rank 3
+    # and broadcasts into an (nblocks, nblocks, 32) outer product.
+    d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).float()
+    # uint8 arithmetic wraps: <<8 truncates to 0 and the -32 bias underflows.
+    extra = blocks[:, 2].to(torch.int32) | (blocks[:, 3].to(torch.int32) << 8)
+    scales_h = blocks[:, 4:8].to(torch.int32)
+    scales_l = blocks[:, 8:16].to(torch.int32)
+    qs = blocks[:, 16:].to(torch.int32)
     table = _IQ4K_VALUES.to(W.device)
     values = []
     for ib in range(8):

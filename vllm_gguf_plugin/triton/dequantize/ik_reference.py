@@ -30,7 +30,9 @@ def dequantize_q6_0_reference(
 ) -> torch.Tensor:
     raw = _validate_input(W, m, n, 32, m * n // 32 * Q6_0_BLOCK_BYTES)
     blocks = raw.reshape(-1, Q6_0_BLOCK_BYTES)
-    d = blocks[:, :2].contiguous().view(torch.float16).to(torch.float32)
+    # .view(float16) yields (nblocks, 1); without squeeze, d[:, None] is rank 3
+    # and broadcasts into an (nblocks, nblocks, 32) outer product.
+    d = blocks[:, :2].contiguous().view(torch.float16).squeeze(1).to(torch.float32)
     qh = blocks[:, 2:10].to(torch.int32)
     qs = blocks[:, 10:].to(torch.int32)
     i = torch.arange(16, device=W.device)
@@ -49,11 +51,16 @@ def dequantize_i2_s_reference(
     row_bytes = n // 4 + I2_S_ROW_SCALE_BYTES
     raw = _validate_input(W, m, n, 128, m * row_bytes)
     rows = raw.reshape(m, row_bytes)
-    packed = rows[:, : n // 4].to(torch.int32)
     scale = rows[:, n // 4 :].contiguous().view(torch.float32)
+    # Group order is per 128-value block, not per row: native emits
+    # y[block*128 + group*32 + j], so planes must be nested inside blocks.
+    blocks_per_row = n // 128
+    packed = rows[:, : n // 4].to(torch.int32).reshape(m, blocks_per_row, 32)
     planes = torch.stack([((packed >> shift) & 3) - 1 for shift in (6, 4, 2, 0)], dim=2)
-    values = planes.transpose(1, 2).reshape(m, n)
-    return (values.to(torch.float32) * scale[:, None]).to(dtype or torch.float16)
+    values = planes.reshape(m, n)
+    # scale is already (m, 1) from the float32 view; scale[:, None] would make
+    # it (m, 1, 1) and broadcast into an (m, m, n) outer product.
+    return (values.to(torch.float32) * scale).to(dtype or torch.float16)
 
 
 REFERENCE_DECODERS = {
