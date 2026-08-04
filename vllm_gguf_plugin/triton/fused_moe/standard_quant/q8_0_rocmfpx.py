@@ -68,19 +68,24 @@ def _q8_0_rocmfpx_moe_kernel(
     w_row_ptrs = w_u8_ptr + expert * stride_we + offs_n[:, None] * stride_wn
 
     for kb_start in range(0, num_k_blocks, BLOCK_K_BLOCKS):
-        x_tile, cur_kb, kb_mask = load_moe_x_tile(
-            x_ptr,
-            num_k_blocks,
-            stride_xm,
-            stride_xk,
-            offs_token,
-            token_mask,
-            kb_start,
-            offs_kb,
-            offs_code,
-            BLOCK_M=BLOCK_M,
-            BLOCK_K_BLOCKS=BLOCK_K_BLOCKS,
+        # Type-103 weights decode sequentially (byte j -> position j), so the
+        # activation tile must be loaded sequentially too. load_moe_x_tile
+        # interleaves a low/high K split (it targets Q4_0/Q8_0's paired layout);
+        # reusing it here paired each weight against the wrong activation.
+        cur_kb = kb_start + offs_kb
+        kb_mask = cur_kb < num_k_blocks
+        x_ptrs = (
+            x_ptr
+            + offs_token[:, None, None] * stride_xm
+            + (cur_kb[None, :, None] * BLOCK_SIZE + offs_code[None, None, :]) * stride_xk
         )
+        x_tile = tl.load(
+            x_ptrs,
+            mask=token_mask[:, None, None] & kb_mask[None, :, None],
+            other=0.0,
+        )
+        # Flatten the (BLOCK_K_BLOCKS, BLOCK_SIZE) K-tile to match w_tile.
+        x_tile = tl.reshape(x_tile, (BLOCK_M, BLOCK_K_BLOCKS * BLOCK_SIZE))
         x_dtype = x_tile.dtype
 
         # Load 32 int8 codes per packed block. load_moe_x_tile builds x_tile as
@@ -92,16 +97,19 @@ def _q8_0_rocmfpx_moe_kernel(
         )
         code_mask = (offs_n[:, None, None] < n) & kb_mask[None, :, None]
         packed = tl.load(code_ptrs, mask=code_mask, other=0)
-        # Reinterpret stored byte as a signed int8 code.
-        codes = tl.where(packed < 128, packed, packed - 256).to(tl.float32)
+        # Reinterpret stored byte as a signed int8 code. Cast to int32 first so
+        # the signed reconstruction (value - 256) does not underflow uint8.
+        packed_i32 = packed.to(tl.int32)
+        codes = tl.where(packed_i32 < 128, packed_i32, packed_i32 - 256).to(tl.float32)
 
         # One UE4M3 scale byte per block, shared across all 32 codes.
-        scale_ptrs = w_row_ptrs[:, None] + cur_kb[None, :] * BLOCK_BYTES + 32
+        # w_row_ptrs is already (BLOCK_N, 1); keep the scale load 2D so the
+        # later codes*scale broadcast is (BLOCK_N, BLOCK_K_BLOCKS, 32).
+        scale_ptrs = w_row_ptrs + cur_kb[None, :] * BLOCK_BYTES + 32
         scale_mask = (offs_n[:, None] < n) & kb_mask[None, :]
         scale_byte = tl.load(scale_ptrs, mask=scale_mask, other=0)
         scale = decode_ue4m3_scale(scale_byte).to(x_dtype)  # (BLOCK_N, BLOCK_K_BLOCKS)
-
-        # Weight tile: codes (BLOCK_N, BLOCK_K_BLOCKS, 32) * scale.
+        # Weight tile: codes (BLOCK_N, BLOCK_K_BLOCKS, 32) * scale (BLOCK_N, BLOCK_K_BLOCKS, 1).
         w_tile = codes * scale[:, :, None]
         w_tile = tl.reshape(w_tile, (BLOCK_N, BLOCK_K_BLOCKS * BLOCK_SIZE))
 
