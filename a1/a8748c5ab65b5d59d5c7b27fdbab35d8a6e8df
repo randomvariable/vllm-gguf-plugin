@@ -1,0 +1,29 @@
+tests/test_qwen35moe_weights_remap.py
+  s_a35c62a3e8a532::t_8cb4531ab9dc66 172-175,181
+vllm_gguf_plugin/quantization/fused_moe.py
+  s_a35c62a3e8a532::t_b2642debb671bf 343,354,357-370
+  s_a35c62a3e8a532::t_70ebf2252ab3cc 344-353
+  s_a35c62a3e8a532::t_47bf831b6b9275 32-33
+  s_a35c62a3e8a532::t_f8b954d3cacc88 355-356
+  s_a35c62a3e8a532::t_b967967917f6c4 284-285,317-318
+  s_a35c62a3e8a532::t_1368cb4a1e71a6 371
+vllm_gguf_plugin/weights_adapter/default.py
+  s_a35c62a3e8a532::t_742cdfea9b4751 329-331,333
+  s_a35c62a3e8a532::t_967bf29204ae17 334-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a1a8748c5ab65b5d59d5c7b27fdbab35d8a6e8df",
+  "prompts": {},
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
