@@ -29,6 +29,8 @@ from .params import (
     GGUFUninitializedWeightTypeParameter,
     _gguf_moe_weight_loader,
     _gguf_moe_weight_type_loader,
+    _materialize_gguf_weight_parameter,
+    _materialize_gguf_weight_type_parameter,
 )
 from .utils import MMQ_QUANT_TYPES, MMVQ_QUANT_TYPES, ROCMFPX_TYPES, logger
 
@@ -279,6 +281,8 @@ class GGUFMoEMethod(FusedMoEMethodBase):
                 "output_dim": 0,
                 "tensor_shape": tensor_shape,
                 "data_container": [],
+                "shard_id": [],
+                "shard_id_map": {},
             },
         )
         set_weight_attrs(w13_qweight, extra_weight_attrs)
@@ -310,6 +314,8 @@ class GGUFMoEMethod(FusedMoEMethodBase):
                 "output_dim": 0,
                 "tensor_shape": tensor_shape,
                 "data_container": [],
+                "shard_id": [],
+                "shard_id_map": {},
             },
         )
         set_weight_attrs(w2_qweight, extra_weight_attrs)
@@ -332,8 +338,36 @@ class GGUFMoEMethod(FusedMoEMethodBase):
     def get_fused_moe_quant_config(
         self, layer: torch.nn.Module
     ) -> FusedMoEQuantConfig | None:
-        del layer
         return None
+
+    def process_weights_after_loading(self, layer: torch.nn.Module) -> None:
+        """Materialize GGUF lazy params after checkpoint loading.
+
+        Mirrors GGUFLinearMethod.process_weights_after_loading: the
+        w13/w2 qweight and qweight_type params are registered as
+        GGUFUninitializedWeight*Parameter so the checkpoint loader can
+        populate them lazily, then materialized into concrete
+        GGUFWeight*Parameter instances here before the first forward.
+        Without this step, RoutedExperts.forward hits
+        'ValueError: Attempted to use an uninitialized parameter'.
+        """
+        self._materialize_gguf_parameters(layer)
+        self._materialize_gguf_parameters(layer)
+
+        self._materialize_qweight(layer, "w13_qweight")
+        self._materialize_qweight_type(layer, "w13_qweight_type")
+        self._materialize_qweight(layer, "w2_qweight")
+        self._materialize_qweight_type(layer, "w2_qweight_type")
+
+    def _materialize_qweight(
+        self, layer: torch.nn.Module, param_name: str
+    ) -> None:
+        _materialize_gguf_weight_parameter(layer, param_name)
+
+    def _materialize_qweight_type(
+        self, layer: torch.nn.Module, param_name: str
+    ) -> None:
+        _materialize_gguf_weight_type_parameter(layer, param_name)
 
     def apply(
         self,

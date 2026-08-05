@@ -326,8 +326,15 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
         """
         if hf_name.endswith(".linear_attn.A_log"):
             return torch.log(torch.clamp(weight, min=1e-4))
+        # GGUF's shape metadata is reversed relative to the materialized
+        # tensor: ssm_conv1d reports [kernel, conv_dim] but the data is laid
+        # out [conv_dim, kernel]. vLLM wants [conv_dim, 1, kernel].
         if hf_name.endswith(".linear_attn.conv1d.weight"):
-            return weight.t().unsqueeze(1).contiguous()
+            return weight.unsqueeze(1).contiguous()
+        # GGUF stores the shared-expert gate as a 1-D [hidden] vector, but
+        # vLLM builds it as ReplicatedLinear(hidden, 1) -> [1, hidden].
+        if hf_name.endswith(".shared_expert_gate.weight") and weight.ndim == 1:
+            return weight.unsqueeze(0).contiguous()
         return weight
 
     def map_weights(

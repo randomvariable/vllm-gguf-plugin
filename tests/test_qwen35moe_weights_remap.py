@@ -169,14 +169,16 @@ class TestQwen35MoeTransformWeight:
 
     def test_conv1d_transform(self) -> None:
         adapter = object.__new__(GGUFWeightsAdapter)
-        # GGUF conv1d: [kernel, channels]
-        src = torch.randn(4, 14, dtype=torch.float32)
+        # GGUF conv1d shape metadata is reversed: reports [kernel, channels]
+        # but the materialized tensor data is [channels, kernel]. vLLM wants
+        # [channels, 1, kernel], so only unsqueeze(1) is needed (no transpose).
+        src = torch.randn(14, 4, dtype=torch.float32)
         out = adapter.transform_weight(
             "model.layers.0.linear_attn.conv1d.weight", src
         )
         # vLLM conv1d: [channels, 1, kernel]
         assert out.shape == (14, 1, 4)
-        assert torch.equal(out, src.t().unsqueeze(1))
+        assert torch.equal(out.squeeze(1), src)
 
     def test_other_names_passthrough(self) -> None:
         adapter = object.__new__(GGUFWeightsAdapter)
