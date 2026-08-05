@@ -78,7 +78,9 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                         r"\.mlp\.experts\.[0-9]+\.(gate|up|down)_proj\.weight"
                     )
                 )
-        if model_type in ("qwen2_moe", "qwen3_moe"):
+        if model_type == "qwen3_5_moe_text":
+            model_type = "qwen35moe"
+        elif model_type in ("qwen2_moe", "qwen3_moe"):
             model_type = model_type.replace("_", "")
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
