@@ -325,13 +325,16 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
     ) -> torch.Tensor:
         """Apply per-tensor transforms for qwen35moe linear-attention params.
 
-        - ``A_log``: GGUF stores A (positive); vLLM stores log(A).
+        - ``A_log``: GGUF ``ssm_a`` already stores ``-exp(A_log)`` (negative),
+          matching llama.cpp which multiplies it straight into the gate.
+          vLLM instead computes ``-A_log.exp()``, so it needs the raw
+          ``A_log`` back: ``A_log = log(-ssm_a)``.
         - ``conv1d.weight``: GGUF [kernel, channels] → vLLM [channels, 1, kernel].
 
         All other names pass through unchanged.
         """
         if hf_name.endswith(".linear_attn.A_log"):
-            return torch.log(torch.clamp(weight, min=1e-4))
+            return torch.log(torch.clamp(-weight, min=1e-4))
         # GGUF's shape metadata is reversed relative to the materialized
         # tensor: ssm_conv1d reports [kernel, conv_dim] but the data is laid
         # out [conv_dim, kernel]. vLLM wants [conv_dim, 1, kernel].

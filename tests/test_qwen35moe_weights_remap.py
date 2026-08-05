@@ -160,12 +160,21 @@ class TestQwen35MoeTransformWeight:
     """Per-tensor transforms for F32 sources (A_log, conv1d)."""
 
     def test_a_log_log_transform(self) -> None:
+        """GGUF ssm_a stores -exp(A_log) (negative); vLLM needs raw A_log.
+
+        llama.cpp multiplies ssm_a straight into the gate, so the stored
+        value is already -exp(A_log). vLLM computes -A_log.exp() instead,
+        so the inverse is A_log = log(-ssm_a). Values are negative in every
+        real checkpoint (verified on STRIX_LEAN: min -72.33, max -0.0186).
+        """
         adapter = object.__new__(GGUFWeightsAdapter)
-        ssm_a = torch.tensor([1.0, 2.5, 0.5])
+        ssm_a = torch.tensor([-1.0, -2.5, -0.5])
         a_log = adapter.transform_weight(
             "model.layers.0.linear_attn.A_log", ssm_a
         )
-        assert torch.allclose(a_log, torch.log(torch.clamp(ssm_a, min=1e-4)))
+        assert torch.allclose(a_log, torch.log(-ssm_a))
+        # Round-trip: vLLM's -A_log.exp() must recover the stored ssm_a.
+        assert torch.allclose(-a_log.exp(), ssm_a, atol=1e-6)
 
     def test_conv1d_transform(self) -> None:
         adapter = object.__new__(GGUFWeightsAdapter)
