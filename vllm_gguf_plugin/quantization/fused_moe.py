@@ -352,13 +352,12 @@ class GGUFMoEMethod(FusedMoEMethodBase):
         'ValueError: Attempted to use an uninitialized parameter'.
         """
         self._materialize_gguf_parameters(layer)
-        self._materialize_gguf_parameters(layer)
 
+    def _materialize_gguf_parameters(self, layer: torch.nn.Module) -> None:
         self._materialize_qweight(layer, "w13_qweight")
         self._materialize_qweight_type(layer, "w13_qweight_type")
         self._materialize_qweight(layer, "w2_qweight")
         self._materialize_qweight_type(layer, "w2_qweight_type")
-
     def _materialize_qweight(
         self, layer: torch.nn.Module, param_name: str
     ) -> None:

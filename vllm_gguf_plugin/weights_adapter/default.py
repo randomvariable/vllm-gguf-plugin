@@ -53,6 +53,15 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
         gguf_to_hf_name_map: dict[str, str] = {}
         sideload_params: list[re.Pattern] = []
 
+        # Qwen3.5 MoE shares the Qwen MoE expert layout but adds
+        # linear-attention (SSM) layers. Normalize the model type *before*
+        # the if/elif chain below so the shared Qwen MoE expert mapping
+        # still applies; a dedicated elif branch would short-circuit the
+        # chain and silently drop every ffn_*_exps tensor.
+        if model_type == "qwen3_5_moe_text":
+            model_type = "qwen35moe"
+            self._add_qwen35moe_linear_attn_remaps(config, gguf_to_hf_name_map)
+
         if model_type == "cohere":
             model_type = "command-r"
         if model_type == "gemma3_text":
@@ -64,13 +73,13 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                     f"model.layers.{idx}.mlp.gate.e_score_correction_bias"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
                 )
                 sideload_params.append(
                     regex.compile(
@@ -78,20 +87,17 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                         r"\.mlp\.experts\.[0-9]+\.(gate|up|down)_proj\.weight"
                     )
                 )
-        if model_type == "qwen3_5_moe_text":
-            model_type = "qwen35moe"
-            self._add_qwen35moe_linear_attn_remaps(config, gguf_to_hf_name_map)
         elif model_type in ("qwen2_moe", "qwen3_moe", "qwen35moe"):
             model_type = model_type.replace("_", "")
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
                 )
                 sideload_params.append(
                     regex.compile(
@@ -102,13 +108,13 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
         if model_type == "olmoe":
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
                 )
                 sideload_params.extend(
                     [

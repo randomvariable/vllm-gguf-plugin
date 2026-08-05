@@ -161,7 +161,7 @@ def _q4_0_rocmfp4_moe_kernel(
         w_high = high_codes * high_scale[:, :, None]
         w_tile = tl.reshape(
             tl.join(w_low, w_high), (BLOCK_N, BLOCK_K_BLOCKS * BLOCK_SIZE)
-        )
+        ).to(x_dtype)
 
         acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
 
