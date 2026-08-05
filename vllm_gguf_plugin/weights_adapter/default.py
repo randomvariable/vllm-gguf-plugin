@@ -81,7 +81,7 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
         if model_type == "qwen3_5_moe_text":
             model_type = "qwen35moe"
             self._add_qwen35moe_linear_attn_remaps(config, gguf_to_hf_name_map)
-        elif model_type in ("qwen2_moe", "qwen3_moe"):
+        elif model_type in ("qwen2_moe", "qwen3_moe", "qwen35moe"):
             model_type = model_type.replace("_", "")
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
