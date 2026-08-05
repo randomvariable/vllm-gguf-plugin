@@ -1,0 +1,31 @@
+tests/test_weights_adapter.py
+  s_a35c62a3e8a532::t_9a19207696f39f 33-35
+  s_a35c62a3e8a532::t_feba7efa00edda 38-40,44
+  s_a35c62a3e8a532::t_60569077649b61 55
+  s_a35c62a3e8a532::t_7554a19e266fea 5-6,56
+  s_a35c62a3e8a532::t_f417382780298b 1-2,4,7,18-21,23-32,36-37,41-43,45-54
+  s_a35c62a3e8a532::t_456d4290b2892d 3,8-17,22
+vllm_gguf_plugin/weights_adapter/default.py
+  s_a35c62a3e8a532::t_1b7c9e65817354 81-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "17479c0819829dce13345bb8d78e760357eb6d7a",
+  "prompts": {},
+  "humans": {
+    "h_15da545fc8cfbe": {
+      "author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  },
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
