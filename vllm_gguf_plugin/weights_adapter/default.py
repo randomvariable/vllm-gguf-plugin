@@ -64,13 +64,13 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                     f"model.layers.{idx}.mlp.gate.e_score_correction_bias"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
                 )
                 sideload_params.append(
                     regex.compile(
@@ -85,13 +85,13 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
             model_type = model_type.replace("_", "")
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
                 )
                 sideload_params.append(
                     regex.compile(
@@ -102,13 +102,13 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
         if model_type == "olmoe":
             for idx in range(config.num_hidden_layers):
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_down_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.down_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.down_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_gate_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.gate_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.gate_proj.weight"
                 )
                 gguf_to_hf_name_map[f"blk.{idx}.ffn_up_exps.weight"] = (
-                    f"model.layers.{idx}.mlp.experts.0.up_proj.weight"
+                    f"model.layers.{idx}.mlp.experts.up_proj.weight"
                 )
                 sideload_params.extend(
                     [
