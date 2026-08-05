@@ -216,3 +216,8 @@ uv.lock
 *_hip.h
 *_hip.cu
 vllm_gguf_plugin/csrc/**/hip_compat.h
+
+# Session/agent scratch artifacts (not part of the plugin)
+.cortexkit/
+.slim/
+AGENTS.md
