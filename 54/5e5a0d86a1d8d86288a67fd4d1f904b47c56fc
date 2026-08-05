@@ -1,0 +1,19 @@
+vllm_gguf_plugin/weights_adapter/default.py
+  s_a35c62a3e8a532::t_0e10658d630cf6 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "545e5a0d86a1d8d86288a67fd4d1f904b47c56fc",
+  "prompts": {},
+  "sessions": {
+    "s_a35c62a3e8a532": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_042660812ffectGJyC3FvO6l9h",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Naadir Jeewa <naadir@randomvariable.co.uk>"
+    }
+  }
+}
