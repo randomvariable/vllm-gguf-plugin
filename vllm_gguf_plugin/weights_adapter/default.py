@@ -80,6 +80,7 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                 )
         if model_type == "qwen3_5_moe_text":
             model_type = "qwen35moe"
+            self._add_qwen35moe_linear_attn_remaps(config, gguf_to_hf_name_map)
         elif model_type in ("qwen2_moe", "qwen3_moe"):
             model_type = model_type.replace("_", "")
             for idx in range(config.num_hidden_layers):
@@ -232,6 +233,103 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
             )
         return gguf_to_hf_name_map
 
+    # ------------------------------------------------------------------
+    # Qwen3.5 MoE linear-attention (SSM) weight fusion
+    # ------------------------------------------------------------------
+
+    def _add_qwen35moe_linear_attn_remaps(
+        self,
+        config,
+        gguf_to_hf_name_map: dict[str, str],
+    ) -> None:
+        """Register 1:1 GGUF→HF name mappings for qwen35moe linear-attn layers.
+
+        GGUF stores each linear-attn projection as a separate tensor.
+        With vLLM's GDN split-projection path (``create_in_proj_qkvz=False``,
+        ``create_in_proj_ba=False``), each GGUF tensor maps 1:1 to an HF param:
+
+            blk.{i}.attn_qkv.weight   → linear_attn.in_proj_qkv.weight
+            blk.{i}.attn_gate.weight  → linear_attn.in_proj_z.weight
+            blk.{i}.ssm_beta.weight   → linear_attn.in_proj_b.weight
+            blk.{i}.ssm_alpha.weight  → linear_attn.in_proj_a.weight
+            blk.{i}.ssm_out.weight    → linear_attn.out_proj.weight
+            blk.{i}.ssm_dt.bias       → linear_attn.dt_bias
+            blk.{i}.ssm_norm.weight   → linear_attn.norm.weight
+            blk.{i}.ssm_conv1d.weight → linear_attn.conv1d.weight
+            blk.{i}.ssm_a             → linear_attn.A_log
+
+        No fusion or dequantization — linear-attn layers stay quantized
+        (llama.cpp memory parity).  Only ``A_log`` (log) and ``conv1d.weight``
+        (transpose+unsqueeze) need per-tensor transforms, handled in
+        ``transform_weight``.
+        """
+        # Force vLLM's QwenGatedDeltaNetAttention to use the split-projection
+        # path so GGUF's separate qkv/z/b/a tensors map 1:1 without fusion.
+        # These flags are read by GDN.__init__; must be set before
+        # AutoModelForCausalLM.from_config (called later in build_name_map).
+        # Set on both the config and its text_config for robustness across
+        # mono- and multi-modal layouts.
+        text_config = config.get_text_config()
+        for cfg in (config, text_config):
+            cfg.create_in_proj_qkvz = False
+            cfg.create_in_proj_ba = False
+
+        layer_types = getattr(config, "layer_types", None)
+        full_attn_interval = getattr(config, "full_attention_interval", None)
+        num_layers = config.num_hidden_layers
+
+        for i in range(num_layers):
+            is_full_attn = False
+            if layer_types is not None and i < len(layer_types):
+                is_full_attn = layer_types[i] == "full_attention"
+            elif full_attn_interval:
+                is_full_attn = i % full_attn_interval == full_attn_interval - 1
+            if is_full_attn:
+                continue
+
+            la = f"model.layers.{i}.linear_attn"
+            # --- 1:1 GGUF→HF name mappings for split-projection path ---
+            gguf_to_hf_name_map[f"blk.{i}.attn_qkv.weight"] = (
+                f"{la}.in_proj_qkv.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.attn_gate.weight"] = (
+                f"{la}.in_proj_z.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_beta.weight"] = (
+                f"{la}.in_proj_b.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_alpha.weight"] = (
+                f"{la}.in_proj_a.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_out.weight"] = (
+                f"{la}.out_proj.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_dt.bias"] = f"{la}.dt_bias"
+            gguf_to_hf_name_map[f"blk.{i}.ssm_norm.weight"] = (
+                f"{la}.norm.weight"
+            )
+            # Single-source transforms handled in transform_weight.
+            gguf_to_hf_name_map[f"blk.{i}.ssm_conv1d.weight"] = (
+                f"{la}.conv1d.weight"
+            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_a"] = f"{la}.A_log"
+
+    def transform_weight(
+        self, hf_name: str, weight: torch.Tensor
+    ) -> torch.Tensor:
+        """Apply per-tensor transforms for qwen35moe linear-attention params.
+
+        - ``A_log``: GGUF stores A (positive); vLLM stores log(A).
+        - ``conv1d.weight``: GGUF [kernel, channels] → vLLM [channels, 1, kernel].
+
+        All other names pass through unchanged.
+        """
+        if hf_name.endswith(".linear_attn.A_log"):
+            return torch.log(torch.clamp(weight, min=1e-4))
+        if hf_name.endswith(".linear_attn.conv1d.weight"):
+            return weight.t().unsqueeze(1).contiguous()
+        return weight
+
     def map_weights(
         self,
         weights: Iterable[tuple[str, torch.Tensor]],
@@ -246,7 +344,6 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                     yield expert_name, expert_weight
             else:
                 yield hf_name, weight
-
     @staticmethod
     def _get_all_gguf_files(model_path: str) -> list[str]:
         match = re.search(r"-(\d+)-of-(\d+)\.gguf$", model_path)
