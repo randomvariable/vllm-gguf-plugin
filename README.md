@@ -232,6 +232,52 @@ the entry point:
 vllm serve <repo>/<model>-GGUF:Q4_0_ROCMFP4 --tokenizer <repo>/<model>
 ```
 
+## Testing
+
+Kernels are checked against oracles written directly from the ABI, which share
+no code with the decoders under test, so a shared misreading cannot mask itself.
+
+Three things beyond value comparison:
+
+**Derived error bounds.** Tolerances come from the float format's mantissa
+width, the reduction length, and the measured cancellation between operands,
+rather than being chosen after watching a test fail. A hand-picked bound hides
+any decode error smaller than the fudge factor. See `tests/numerics.py`.
+
+**Out-of-bounds read detection.** These decoders compute byte and plane offsets
+into packed buffers, so an addressing error reads neighbouring memory and
+returns plausible numbers -- invisible to a reference comparison, which is only
+consulted for the elements requested. Inputs are padded and the padding is
+refilled between two runs; an in-bounds kernel must produce identical output
+both times.
+
+**End-to-end perplexity gate.** Kernel tests cannot see a bug outside the
+kernel: a converter transform or layout assumption sits on both sides of the
+comparison. Two such bugs shipped here while every kernel test passed, both
+magnitude-preserving, so no statistical check flagged them. Only perplexity
+separated the states. Following llama.cpp's `ci/run.sh`:
+
+```bash
+VLLM_GGUF_PPL_MODEL=/path/to/model.gguf \
+VLLM_GGUF_PPL_TOKENIZER=/path/to/tokenizer \
+  pytest tests/test_perplexity_gate.py
+```
+
+### Cross-backend matrix
+
+The same kernel can pass on one backend and fail on another -- `tl.dot` rejects
+mismatched operand dtypes, and float32 lowers to TF32 on NVIDIA but full
+precision on AMD. Run the comparison with:
+
+```bash
+scripts/backend_matrix.py            # every available backend
+scripts/backend_matrix.py --list     # show configuration
+```
+
+Currently 295 kernel tests, identical on gfx1151 and sm_121. Backends are probed
+first and reported as unavailable rather than failing, so a partial run still
+produces a usable matrix.
+
 ## For Contributors
 
 `homelabs-main` is the consolidated branch. Per-format work lands on feature
