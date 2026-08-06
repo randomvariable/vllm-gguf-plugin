@@ -18,6 +18,8 @@ from ..gemm.utils import (
     GGML_TYPE_IQ3_XXS,
     GGML_TYPE_IQ4_NL,
     GGML_TYPE_IQ4_XS,
+    GGML_TYPE_Q1_0,
+    GGML_TYPE_Q2_0,
     GGML_TYPE_Q2_0_ROCMFPX,
     GGML_TYPE_Q2_K,
     GGML_TYPE_Q3_0_ROCMFPX,
@@ -35,6 +37,8 @@ from ..gemm.utils import (
     GGML_TYPE_Q8_0,
     GGML_TYPE_Q8_0_ROCMFPX,
     GGML_TYPE_Q8_1,
+    GGML_TYPE_TQ1_0,
+    GGML_TYPE_TQ2_0,
     TRITON_NUM_STAGES,
     TRITON_NUM_WARPS,
     TRITON_SUPPORTED_ACTIVATION_DTYPES,
@@ -68,6 +72,10 @@ TRITON_FUSED_MOE_SUPPORTED_TYPES = frozenset(
         GGML_TYPE_Q6_0_ROCMFPX,
         GGML_TYPE_Q3_0_ROCMFPX,
         GGML_TYPE_Q2_0_ROCMFPX,
+        GGML_TYPE_Q1_0,
+        GGML_TYPE_Q2_0,
+        GGML_TYPE_TQ1_0,
+        GGML_TYPE_TQ2_0,
     }
 )
 
@@ -84,6 +92,13 @@ TRITON_MOE_BLOCK_M_BY_TYPE: dict[int, int] = {
     GGML_TYPE_Q6_0_ROCMFPX: 4,
     GGML_TYPE_Q3_0_ROCMFPX: 4,
     GGML_TYPE_Q2_0_ROCMFPX: 4,
+    # Low-bit gap formats. BLOCK_M=4 mirrors the ROCmFPX defaults; these have
+    # not been profiled yet, but an explicit entry keeps them out of the
+    # silent default (see TRITON_FUSED_MOE_BLOCK_M).
+    GGML_TYPE_Q1_0: 4,
+    GGML_TYPE_Q2_0: 4,
+    GGML_TYPE_TQ1_0: 4,
+    GGML_TYPE_TQ2_0: 4,
 }
 
 
