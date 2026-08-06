@@ -81,6 +81,7 @@ def max_relative_error(
     *,
     accumulate_dtype: torch.dtype = torch.float32,
     tf32: bool = False,
+    condition: float = 1.0,
 ) -> float:
     """Error bound for a length-``k`` dot product against a dense reference.
 
@@ -98,13 +99,52 @@ def max_relative_error(
     sqrt(k)``. This dominates when operands are exact, which is why true float32
     is *less* accurate than the ``eps`` term alone suggests.
 
+    ``condition`` accounts for cancellation. Rounding error is generated in
+    proportion to the *term* magnitudes ``sum|a_i b_i|``, but a relative bound is
+    stated against the *output* ``|sum a_i b_i|``. When terms cancel these differ,
+    and the classical Higham bound carries exactly that ratio. Leaving it at 1.0
+    assumes no cancellation, which holds for random data but fails badly on
+    adversarial inputs -- a same-sign activation vector against a mixed-sign
+    codebook at maximum scale reaches a condition number in the thousands.
+    Use :func:`dot_condition` to measure it.
+
     Pass ``tf32=True`` on NVIDIA unless ``TRITON_F32_DEFAULT=ieee`` is set.
     """
     if k <= 0:
         raise ValueError(f"k must be positive, got {k}")
+    if condition < 1.0:
+        raise ValueError(f"condition must be at least 1.0, got {condition}")
     operand = epsilon(operand_dtype, tf32=tf32)
     accumulate = epsilon(accumulate_dtype, tf32=tf32)
-    return _SAFETY * (operand + accumulate * math.sqrt(k))
+    return _SAFETY * condition * (operand + accumulate * math.sqrt(k))
+
+
+def dot_condition(a: torch.Tensor, b: torch.Tensor) -> float:
+    """Cancellation factor for ``a @ b``, matched to a peak-normalized check.
+
+    Returns ``max_i sum|a_i b_i| / max_j |output_j|``: the largest error any
+    output can absorb, divided by the scale :func:`assert_close` normalizes
+    against. 1.0 means no cancellation.
+
+    The normalization matters. A *per-output* ratio would blow up whenever a
+    single output lands near zero, which random data does routinely -- k=128
+    Gaussian inputs reach ~1700 that way. But a near-zero output does not need
+    high relative precision, because the check divides by the peak output, not
+    by that element. Using the peak keeps the measure aligned with the assertion
+    actually being made, so it reports genuine cancellation rather than the
+    ordinary statistics of random data.
+
+    ``a`` is ``[..., k]`` and ``b`` is ``[k, n]``, matching ``a @ b``.
+    """
+    a64 = a.reshape(-1, a.shape[-1]).to(torch.float64)
+    b64 = b.to(torch.float64)
+    term_magnitude = (a64.abs() @ b64.abs()).max().item()
+    output_peak = (a64 @ b64).abs().max().item()
+    if output_peak == 0.0:
+        # No scale to normalize against; treat as unconditioned rather than
+        # infinitely ill-conditioned.
+        return 1.0
+    return max(1.0, term_magnitude / output_peak)
 
 
 def uses_tf32(device: torch.device | str = "cuda") -> bool:
@@ -127,6 +167,7 @@ def max_relative_error_chained(
     *,
     accumulate_dtype: torch.dtype = torch.float32,
     tf32: bool = False,
+    condition: float = 1.0,
 ) -> float:
     """Error bound for chained matmuls, such as an MoE gate/up then down pass.
 
@@ -136,7 +177,11 @@ def max_relative_error_chained(
     """
     return sum(
         max_relative_error(
-            operand_dtype, k, accumulate_dtype=accumulate_dtype, tf32=tf32
+            operand_dtype,
+            k,
+            accumulate_dtype=accumulate_dtype,
+            tf32=tf32,
+            condition=condition,
         )
         for k in reduction_lengths
     )
@@ -188,6 +233,7 @@ def assert_close(
     *,
     accumulate_dtype: torch.dtype = torch.float32,
     tf32: bool = False,
+    condition: float = 1.0,
     label: str = "",
 ) -> None:
     """Assert kernel output matches a dense reference within derived bounds.
@@ -221,7 +267,11 @@ def assert_close(
 
     lengths = (k,) if isinstance(k, int) else tuple(k)
     bound = max_relative_error_chained(
-        operand_dtype, lengths, accumulate_dtype=accumulate_dtype, tf32=tf32
+        operand_dtype,
+        lengths,
+        accumulate_dtype=accumulate_dtype,
+        tf32=tf32,
+        condition=condition,
     )
     finite = ~a_inf
     scale = b[finite].abs().max().item() if finite.any() else 0.0
@@ -240,6 +290,42 @@ def assert_close(
             f"{prefix}NMSE {observed:.3e} exceeds {limit:.3e} "
             f"(operand={operand_dtype}, k={k}, tf32={tf32})"
         )
+
+
+def assert_gemm_close(
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    activations: torch.Tensor,
+    dense_weights: torch.Tensor | None = None,
+    *,
+    label: str = "",
+) -> None:
+    """Assert a GEMM result matches a dense reference within derived bounds.
+
+    Convenience wrapper for the common single-matmul case: the operand dtype and
+    the reduction length both come from ``activations``, so neither can drift out
+    of step with the tensors actually under test.
+
+    Pass ``dense_weights`` (the decoded ``[rows, k]`` weights) to measure
+    cancellation instead of assuming none. Test data is often adversarial in a
+    way real activations are not -- ramps against a mixed-sign codebook at
+    maximum scale -- and without it a correct kernel can be flagged for producing
+    rounding error the output magnitude alone does not explain.
+    """
+    condition = 1.0
+    if dense_weights is not None:
+        condition = dot_condition(
+            activations.reshape(-1, activations.shape[-1]), dense_weights.T
+        )
+    assert_close(
+        actual,
+        expected,
+        activations.dtype,
+        activations.shape[-1],
+        tf32=uses_tf32(activations.device),
+        condition=condition,
+        label=label,
+    )
 
 
 def assert_finite_range(

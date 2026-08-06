@@ -17,6 +17,7 @@ from tests.numerics import (
     SentinelTensor,
     assert_close,
     assert_finite_range,
+    dot_condition,
     epsilon,
     max_nmse,
     max_relative_error,
@@ -332,6 +333,58 @@ class TestBoundSensitivity:
         observed_floor = 9.31e-4
         assert observed_floor / eps16 > 1.5
         assert drift < 2 * observed_floor
+
+
+class TestCancellation:
+    """Rounding error scales with term magnitude, not output magnitude.
+
+    Ignoring this flagged a numerically perfect kernel: measured error was
+    5.7e-8 relative to the terms -- below float32 eps -- but 9.1e-6 relative to
+    the heavily cancelled output.
+    """
+
+    def test_orthogonal_case_is_well_conditioned(self) -> None:
+        torch.manual_seed(0)
+        a = torch.randn(4, 128)
+        b = torch.randn(128, 4)
+        assert dot_condition(a, b) < 20.0
+
+    def test_cancelling_case_is_ill_conditioned(self) -> None:
+        """Large terms summing to nearly zero."""
+        a = torch.tensor([[1e6, 1e6]])
+        b = torch.tensor([[1.0], [-1.0 + 1e-6]])
+        assert dot_condition(a, b) > 1e5
+
+    def test_condition_is_never_below_one(self) -> None:
+        a = torch.ones(2, 4)
+        b = torch.ones(4, 2)
+        assert dot_condition(a, b) >= 1.0
+
+    def test_zero_terms_are_not_ill_conditioned(self) -> None:
+        """An all-zero product has no scale; it is unconditioned, not infinite."""
+        a = torch.zeros(2, 4)
+        b = torch.zeros(4, 2)
+        assert dot_condition(a, b) == 1.0
+
+    def test_condition_widens_the_bound_proportionally(self) -> None:
+        base = max_relative_error(torch.float32, 256)
+        scaled = max_relative_error(torch.float32, 256, condition=100.0)
+        assert scaled == pytest.approx(base * 100.0)
+
+    def test_condition_below_one_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match="condition must be at least"):
+            max_relative_error(torch.float32, 256, condition=0.5)
+
+    def test_cancellation_does_not_mask_a_real_bug(self) -> None:
+        """Widening for cancellation must not let a decode error through.
+
+        The condition number reached by the type-101 max-scale case was ~8e3;
+        even at that width a half-scale error is still rejected.
+        """
+        torch.manual_seed(0)
+        expected = torch.randn(8, 64) * 10
+        with pytest.raises(AssertionError):
+            assert_close(expected * 0.5, expected, torch.float32, 96, condition=8e3)
 
 
 class TestChainedBound:
