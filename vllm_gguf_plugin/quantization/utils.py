@@ -86,15 +86,27 @@ LOWBIT_TRITON_TYPES = {
     WeightType.Q2_0,
 }
 
+# The FP4 formats are in the same position: dedicated Triton kernels, no native
+# _C_gguf kernel. Both share the E2M1 codebook and differ only in blocking and
+# scale encoding -- MXFP4 32 weights with one trailing E8M0 byte, NVFP4 64 with
+# four leading UE4M3 bytes.
+FP4_TRITON_TYPES = {
+    WeightType.MXFP4,
+    WeightType.NVFP4,
+}
+
 DEQUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
 MMVQ_QUANT_TYPES = (
     STANDARD_QUANT_TYPES
     | KQUANT_TYPES
     | IMATRIX_QUANT_TYPES
     | LOWBIT_TRITON_TYPES
+    | FP4_TRITON_TYPES
     | {GGML_TYPE_Q4_0_ROCMFP4_FAST}
 )
-MMQ_QUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | LOWBIT_TRITON_TYPES
+MMQ_QUANT_TYPES = (
+    STANDARD_QUANT_TYPES | KQUANT_TYPES | LOWBIT_TRITON_TYPES | FP4_TRITON_TYPES
+)
 
 # ROCmFPX custom quantization types (not in standard gguf enum)
 from ..rocmfpx_types import (  # noqa: E402

@@ -14,6 +14,8 @@ from .k_quant.q3_k import ggml_gemm_q3_k_triton
 from .k_quant.q4_k import ggml_gemm_q4_k_triton
 from .k_quant.q5_k import ggml_gemm_q5_k_triton
 from .k_quant.q6_k import ggml_gemm_q6_k_triton
+from .standard_quant.mxfp4 import ggml_gemm_mxfp4_triton
+from .standard_quant.nvfp4 import ggml_gemm_nvfp4_triton
 from .standard_quant.q1_0 import ggml_gemm_q1_0_triton
 from .standard_quant.q2_0 import ggml_gemm_q2_0_triton
 from .standard_quant.q2_0_rocmfpx import ggml_gemm_q2_0_rocmfpx_triton
@@ -42,6 +44,8 @@ from .utils import (
     GGML_TYPE_IQ3_XXS,
     GGML_TYPE_IQ4_NL,
     GGML_TYPE_IQ4_XS,
+    GGML_TYPE_MXFP4,
+    GGML_TYPE_NVFP4,
     GGML_TYPE_Q1_0,
     GGML_TYPE_Q2_0,
     GGML_TYPE_Q2_0_ROCMFPX,
@@ -96,7 +100,9 @@ def ggml_mul_mat_a8_triton(
         GGML_TYPE_Q8_0: ggml_gemm_q8_0_triton,
         GGML_TYPE_Q8_0_ROCMFPX: ggml_gemm_q8_0_rocmfpx_triton,
         GGML_TYPE_Q8_1: ggml_gemm_q8_1_triton,
-        GGML_TYPE_Q1_0: ggml_gemm_q1_0_triton,
+        GGML_TYPE_MXFP4: ggml_gemm_mxfp4_triton,
+    GGML_TYPE_NVFP4: ggml_gemm_nvfp4_triton,
+    GGML_TYPE_Q1_0: ggml_gemm_q1_0_triton,
         GGML_TYPE_Q2_0: ggml_gemm_q2_0_triton,
         GGML_TYPE_TQ1_0: ggml_gemm_tq1_0_triton,
         GGML_TYPE_TQ2_0: ggml_gemm_tq2_0_triton,
