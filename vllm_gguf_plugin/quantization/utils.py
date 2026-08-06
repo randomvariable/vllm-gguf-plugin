@@ -72,12 +72,29 @@ IMATRIX_QUANT_TYPES = {
     WeightType.IQ4_XS,
     WeightType.IQ4_NL,
 }
+# Low-bit formats with dedicated Triton GEMM and fused-MoE kernels but no
+# native _C_gguf kernel. Routing membership means "dispatch through
+# ops.ggml_mul_mat_a8 / ggml_moe_a8", not "a native kernel exists": those ops
+# fall through to Triton when the native capability check fails. Q8_1 is the
+# existing precedent -- it sits in MMQ_QUANT_TYPES with no native GEMM.
+# Without membership these formats silently take the dequantise-plus-dense
+# path and never reach their kernels.
+LOWBIT_TRITON_TYPES = {
+    WeightType.TQ1_0,
+    WeightType.TQ2_0,
+    WeightType.Q1_0,
+    WeightType.Q2_0,
+}
+
 DEQUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
 MMVQ_QUANT_TYPES = (
-    STANDARD_QUANT_TYPES | KQUANT_TYPES | IMATRIX_QUANT_TYPES
+    STANDARD_QUANT_TYPES
+    | KQUANT_TYPES
+    | IMATRIX_QUANT_TYPES
+    | LOWBIT_TRITON_TYPES
     | {GGML_TYPE_Q4_0_ROCMFP4_FAST}
 )
-MMQ_QUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES
+MMQ_QUANT_TYPES = STANDARD_QUANT_TYPES | KQUANT_TYPES | LOWBIT_TRITON_TYPES
 
 # ROCmFPX custom quantization types (not in standard gguf enum)
 from ..rocmfpx_types import (  # noqa: E402
