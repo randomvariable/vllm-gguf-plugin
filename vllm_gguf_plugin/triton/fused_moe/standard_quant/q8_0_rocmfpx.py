@@ -113,7 +113,10 @@ def _q8_0_rocmfpx_moe_kernel(
         w_tile = codes * scale[:, :, None]
         w_tile = tl.reshape(w_tile, (BLOCK_N, BLOCK_K_BLOCKS * BLOCK_SIZE))
 
-        acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
+        # codes is float32, so codes * scale promotes back to float32 even
+        # though scale was cast to x_dtype. tl.dot requires matching operand
+        # dtypes, so cast explicitly rather than relying on the product.
+        acc = tl.dot(x_tile, tl.trans(w_tile.to(x_dtype)), acc=acc)
 
     y_ptrs = y_ptr + offs_output[:, None] * stride_ym + offs_n[None, :] * stride_yn
     y_mask = token_mask[:, None] & (offs_n[None, :] < n)

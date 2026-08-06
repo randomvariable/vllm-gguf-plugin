@@ -250,7 +250,17 @@ def _fused_moe(
     return weighted.sum(dim=1)
 
 
-def _assert_moe_parity(w13_type: int, w2_type: int, seed: int = 0) -> None:
+# Keep the float16 pipeline an order of magnitude below the 65504 ceiling so
+# intermediate accumulation has headroom.
+_FP16_PIPELINE_PEAK = 4096.0
+
+
+def _assert_moe_parity(
+    w13_type: int,
+    w2_type: int,
+    seed: int = 0,
+    dtype: torch.dtype = torch.float32,
+) -> None:
     torch.manual_seed(seed)
     experts, tokens, hidden, inter, top_k = 4, 8, 64, 64, 2
 
@@ -262,21 +272,34 @@ def _assert_moe_parity(w13_type: int, w2_type: int, seed: int = 0) -> None:
     )
     topk_weights = torch.rand((tokens, top_k), dtype=torch.float32, device="cuda")
 
-    expected = _reference_moe(
-        x,
-        _dequantize(w13, w13_type),
-        _dequantize(w2, w2_type),
-        topk_ids,
-        topk_weights,
-        inter,
+    dense13 = _dequantize(w13, w13_type)
+    dense2 = _dequantize(w2, w2_type)
+
+    if dtype == torch.float16:
+        # Random packed codes with live scales give weight magnitudes far above
+        # a trained model's, and the gate*up product makes the pipeline
+        # quadratic in x, so intermediates reach ~1e9 -- past float16's 65504
+        # ceiling. float32 and bfloat16 both carry an 8-bit exponent and are
+        # unaffected. Rescale the activations so the pipeline stays in range;
+        # the kernel's decode path is identical either way.
+        probe = _reference_moe(x, dense13, dense2, topk_ids, topk_weights, inter)
+        peak = probe.abs().max().item()
+        if peak > _FP16_PIPELINE_PEAK:
+            x = x * (_FP16_PIPELINE_PEAK / peak) ** 0.5
+
+    expected = _reference_moe(x, dense13, dense2, topk_ids, topk_weights, inter)
+    actual = _fused_moe(
+        x.to(dtype), w13, w2, w13_type, w2_type, topk_ids, topk_weights, inter
     )
-    actual = _fused_moe(x, w13, w2, w13_type, w2_type, topk_ids, topk_weights, inter)
 
     # Relative tolerance: the reference accumulates per token while the kernel
     # accumulates over K tiles, so FP32 ordering differs. Observed worst case is
-    # 1.2e-3 on GB10 and exact on gfx1151.
+    # 1.2e-3 on GB10 and exact on gfx1151. Reduced-precision activations carry
+    # their own accumulation error on top of that (bfloat16 has an 8-bit
+    # mantissa), so they get a wider budget.
+    tol = 1e-2 if dtype == torch.float32 else 5e-2
     scale = expected.abs().max().item() + 1e-6
-    assert (expected - actual).abs().max().item() / scale < 1e-2
+    assert (expected - actual.to(torch.float32)).abs().max().item() / scale < tol
 
 
 @requires_gpu
@@ -284,6 +307,27 @@ def _assert_moe_parity(w13_type: int, w2_type: int, seed: int = 0) -> None:
 def test_rocmfpx_fused_moe_matches_independent_reference(quant_type: int) -> None:
     """Each ROCmFPX MoE kernel must match a dequantize-plus-dense reference."""
     _assert_moe_parity(quant_type, quant_type)
+
+
+@requires_gpu
+@pytest.mark.parametrize("quant_type", sorted(SPECS))
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param(torch.float16, id="float16"),
+        pytest.param(torch.bfloat16, id="bfloat16"),
+    ],
+)
+def test_rocmfpx_fused_moe_reduced_precision_activations(
+    quant_type: int, dtype: torch.dtype
+) -> None:
+    """Each MoE kernel must also decode correctly for fp16/bf16 activations.
+
+    Real models run bf16, not fp32. tl.dot rejects mismatched operand dtypes,
+    so a kernel that leaves its decoded weight tile in float32 fails to compile
+    here while passing every float32-only test.
+    """
+    _assert_moe_parity(quant_type, quant_type, dtype=dtype)
 
 
 @requires_gpu
