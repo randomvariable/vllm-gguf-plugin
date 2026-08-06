@@ -28,6 +28,7 @@ SUB_SIZE = 16
 SUB_COUNT = BLOCK_SIZE // SUB_SIZE
 SCALE_BYTES = SUB_COUNT
 SUB_PAYLOAD_BYTES = SUB_SIZE // 2
+PAYLOAD_BYTES = BLOCK_SIZE // 2
 SUPPORTED_ACTIVATION_DTYPES = (torch.float16, torch.bfloat16, torch.float32)
 
 GEMM_BLOCK_M = 32
@@ -147,50 +148,58 @@ def _gemm_kernel(
     offs_m = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
     offs_n = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
-    offs_j = tl.arange(0, SUB_PAYLOAD_BYTES)
+
+    # One lane per payload byte. Byte p belongs to sub-block p // 8 and carries
+    # the codes for outputs sub*16 + (p % 8) and sub*16 + 8 + (p % 8).
+    #
+    # The whole block is reduced in one 64-wide dot rather than four 16-wide
+    # ones, with each byte's scale gathered alongside it. Four narrow dots is
+    # the more obvious shape and is correct on gfx1151, but mispairs operands
+    # on sm_121 -- halving the effective K and doubling half the lanes -- so
+    # the wide form is the portable one.
+    offs_p = tl.arange(0, PAYLOAD_BYTES)
+    sub_of_p = offs_p // SUB_PAYLOAD_BYTES
+    x_low_idx = sub_of_p * SUB_SIZE + (offs_p % SUB_PAYLOAD_BYTES)
+    x_high_idx = x_low_idx + SUB_PAYLOAD_BYTES
 
     for block in range(0, num_blocks):
         block_base = w_ptr + offs_n[:, None] * stride_wn + block * BLOCK_BYTES
-        # Each sub-block carries its own scale, so it is decoded and reduced
-        # independently rather than as one 64-wide tile.
-        for sub in range(0, SUB_COUNT):
-            packed = tl.load(
-                block_base + SCALE_BYTES + sub * SUB_PAYLOAD_BYTES + offs_j[None, :],
-                mask=(offs_n[:, None] < n),
-                other=0,
-            ).to(tl.uint8)
-            low = packed & 0xF
-            high = packed >> 4
 
-            scale_byte = tl.load(
-                w_ptr + offs_n * stride_wn + block * BLOCK_BYTES + sub,
-                mask=offs_n < n,
-                other=0,
-            ).to(tl.uint8)
-            scale = _ue4m3_scale(scale_byte)
+        packed = tl.load(
+            block_base + SCALE_BYTES + offs_p[None, :],
+            mask=(offs_n[:, None] < n),
+            other=0,
+        ).to(tl.uint8)
 
-            # tl.join yields (BLOCK_N, 8, 2); the scale must broadcast at rank
-            # three or it reaches only the final pair dimension.
-            w_tile = tl.join(_codebook(low), _codebook(high)) * scale[:, None, None]
+        # Gather per byte, so one tile carries all four sub-block scales.
+        scale_byte = tl.load(
+            block_base + sub_of_p[None, :],
+            mask=(offs_n[:, None] < n),
+            other=0,
+        ).to(tl.uint8)
+        scale = _ue4m3_scale(scale_byte)
 
-            k_base = block * BLOCK_SIZE + sub * SUB_SIZE
-            x_low = tl.load(
-                x_ptr
-                + offs_m[:, None] * stride_xm
-                + ((k_base + offs_j)[None, :]) * stride_xk,
-                mask=(offs_m[:, None] < m),
-                other=0.0,
-            )
-            x_high = tl.load(
-                x_ptr
-                + offs_m[:, None] * stride_xm
-                + ((k_base + SUB_PAYLOAD_BYTES + offs_j)[None, :]) * stride_xk,
-                mask=(offs_m[:, None] < m),
-                other=0.0,
-            )
-            x_tile = tl.reshape(tl.join(x_low, x_high), (BLOCK_M, SUB_SIZE))
-            w_tile = tl.reshape(w_tile, (BLOCK_N, SUB_SIZE)).to(x_tile.dtype)
-            acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
+        w_tile = tl.join(
+            _codebook(packed & 0xF) * scale, _codebook(packed >> 4) * scale
+        )
+
+        x_low = tl.load(
+            x_ptr
+            + offs_m[:, None] * stride_xm
+            + ((block * BLOCK_SIZE + x_low_idx)[None, :]) * stride_xk,
+            mask=(offs_m[:, None] < m),
+            other=0.0,
+        )
+        x_high = tl.load(
+            x_ptr
+            + offs_m[:, None] * stride_xm
+            + ((block * BLOCK_SIZE + x_high_idx)[None, :]) * stride_xk,
+            mask=(offs_m[:, None] < m),
+            other=0.0,
+        )
+        x_tile = tl.reshape(tl.join(x_low, x_high), (BLOCK_M, BLOCK_SIZE))
+        w_tile = tl.reshape(w_tile, (BLOCK_N, BLOCK_SIZE)).to(x_tile.dtype)
+        acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
 
     tl.store(
         y_ptr + offs_m[:, None] * stride_ym + offs_n[None, :] * stride_yn,

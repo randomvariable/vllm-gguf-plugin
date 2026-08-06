@@ -59,10 +59,12 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections.abc import Sequence
 
 # Suites that execute quantization kernels. Dispatch-contract suites that only
@@ -79,6 +81,7 @@ KERNEL_SUITES = (
     "tests/test_type107_rocmfpx_dense_gemm_contract.py",
     "tests/test_rocmfpx_moe_type103_contract.py",
     "tests/test_lowbit_gap_formats.py",
+    "tests/test_fp4_formats.py",
     "tests/test_numerics.py",
 )
 
@@ -96,6 +99,15 @@ class Backend:
 
     def available(self) -> tuple[bool, str]:
         """Return ``(usable, reason)``."""
+        raise NotImplementedError
+
+    def sync(self) -> tuple[bool, str]:
+        """Copy the working tree to the backend.
+
+        Without this the matrix silently tests whatever source the backend last
+        saw, which is worse than not running it: a stale pass reads as a real
+        pass, and a stale failure sends you debugging code you already fixed.
+        """
         raise NotImplementedError
 
     def run(self, suite: str) -> subprocess.CompletedProcess[str]:
@@ -124,6 +136,23 @@ class DockerBackend(Backend):
         if probe.stdout.strip() != "true":
             return False, f"container {self.container} is not running"
         return True, "ready"
+
+    def sync(self) -> tuple[bool, str]:
+        for tree in ("vllm_gguf_plugin", "tests"):
+            copied = subprocess.run(
+                [
+                    "docker",
+                    "cp",
+                    "-q",
+                    f"{tree}/.",
+                    f"{self.container}:{self.workdir}/{tree}",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if copied.returncode != 0:
+                return False, copied.stderr.strip()[:120] or "docker cp failed"
+        return True, "synced"
 
     def run(self, suite: str) -> subprocess.CompletedProcess[str]:
         pythonpath = ":".join(p for p in (self.extra_pythonpath, self.workdir) if p)
@@ -170,6 +199,49 @@ class KubernetesBackend(Backend):
         if probe.stdout.strip() != "Running":
             return False, f"pod {self.pod} is {probe.stdout.strip() or 'absent'}"
         return True, "ready"
+
+    def sync(self) -> tuple[bool, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = pathlib.Path(tmp) / "src.tgz"
+            packed = subprocess.run(
+                ["tar", "czf", str(archive), "vllm_gguf_plugin", "tests"],
+                capture_output=True,
+                text=True,
+            )
+            if packed.returncode != 0:
+                return False, packed.stderr.strip()[:120] or "tar failed"
+
+            copied = subprocess.run(
+                [
+                    "kubectl",
+                    "cp",
+                    str(archive),
+                    f"{self.namespace}/{self.pod}:/tmp/src.tgz",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if copied.returncode != 0:
+                return False, copied.stderr.strip()[:120] or "kubectl cp failed"
+
+        extracted = subprocess.run(
+            [
+                "kubectl",
+                "exec",
+                "-n",
+                self.namespace,
+                self.pod,
+                "--",
+                "bash",
+                "-c",
+                f"cd {self.workdir} && tar xzf /tmp/src.tgz",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if extracted.returncode != 0:
+            return False, extracted.stderr.strip()[:120] or "extract failed"
+        return True, "synced"
 
     def run(self, suite: str) -> subprocess.CompletedProcess[str]:
         script = (
@@ -272,6 +344,23 @@ def run_matrix(backends: Sequence[Backend], suites: Sequence[str]) -> int:
 
     if not usable:
         print("\nNo backend is available; nothing to compare.")
+        return 1
+
+    # Sync before running. A backend testing stale source produces a result
+    # that looks authoritative and is not.
+    print()
+    synced: list[Backend] = []
+    for backend in usable:
+        ok, reason = backend.sync()
+        print(f"  {backend.name:<10} sync: {reason}")
+        if ok:
+            synced.append(backend)
+        else:
+            print(f"  {backend.name:<10} skipped -- would have tested stale source")
+    usable = synced
+
+    if not usable:
+        print("\nNo backend could be synced; refusing to report stale results.")
         return 1
 
     print()

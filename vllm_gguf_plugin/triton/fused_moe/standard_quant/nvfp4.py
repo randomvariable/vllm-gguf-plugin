@@ -29,6 +29,12 @@ SUB_SIZE = 16
 SUB_COUNT = BLOCK_SIZE // SUB_SIZE
 SCALE_BYTES = SUB_COUNT
 SUB_PAYLOAD_BYTES = SUB_SIZE // 2
+PAYLOAD_BYTES = BLOCK_SIZE // 2
+
+# The shared default BLOCK_N=128 targets 32-element blocks; this format's
+# 64-element block doubles the weight tile, so halve the N tile to stay inside
+# the 64 KiB LDS budget on gfx1151. Q2_0 does the same for the same reason.
+MOE_BLOCK_N = 64
 
 
 @triton.jit
@@ -69,67 +75,72 @@ def _nvfp4_moe_kernel(
     pid_n = tl.program_id(1)
     offs_n = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
     offs_kb = tl.arange(0, BLOCK_K_BLOCKS)
-    offs_j = tl.arange(0, SUB_PAYLOAD_BYTES)
 
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
     w_row_ptrs = w_u8_ptr + expert * stride_we + offs_n[:, None] * stride_wn
+
+    # One lane per payload byte. Byte p belongs to sub-block p // 8 and carries
+    # the codes for outputs sub*16 + (p % 8) and sub*16 + 8 + (p % 8).
+    #
+    # The whole block is reduced in one 64-wide dot rather than four 16-wide
+    # ones, with each byte's scale gathered alongside it. Four narrow dots is
+    # the more obvious shape and is correct on gfx1151, but mispairs operands
+    # on sm_121, so the wide form is the portable one.
+    offs_p = tl.arange(0, PAYLOAD_BYTES)
+    sub_of_p = offs_p // SUB_PAYLOAD_BYTES
+    x_low_idx = sub_of_p * SUB_SIZE + (offs_p % SUB_PAYLOAD_BYTES)
+    x_high_idx = x_low_idx + SUB_PAYLOAD_BYTES
 
     for kb_start in range(0, num_k_blocks, BLOCK_K_BLOCKS):
         cur_kb = kb_start + offs_kb
         kb_mask = cur_kb < num_k_blocks
 
-        # Each sub-block has its own scale, so it is decoded and reduced
-        # separately rather than as one 64-wide tile.
-        for sub in range(0, SUB_COUNT):
-            k_base = cur_kb * BLOCK_SIZE + sub * SUB_SIZE
+        x_base = offs_token[:, None, None] * stride_xm
+        k_base = cur_kb * BLOCK_SIZE
+        x_low_ptrs = (
+            x_ptr
+            + x_base
+            + (k_base[None, :, None] + x_low_idx[None, None, :]) * stride_xk
+        )
+        x_high_ptrs = (
+            x_ptr
+            + x_base
+            + (k_base[None, :, None] + x_high_idx[None, None, :]) * stride_xk
+        )
+        tile_mask = token_mask[:, None, None] & kb_mask[None, :, None]
+        x_low = tl.load(x_low_ptrs, mask=tile_mask, other=0.0)
+        x_high = tl.load(x_high_ptrs, mask=tile_mask, other=0.0)
+        x_tile = tl.reshape(
+            tl.join(x_low, x_high), (BLOCK_M, BLOCK_K_BLOCKS * BLOCK_SIZE)
+        )
+        x_dtype = x_tile.dtype
 
-            x_base = offs_token[:, None, None] * stride_xm
-            x_low_ptrs = (
-                x_ptr
-                + x_base
-                + (k_base[None, :, None] + offs_j[None, None, :]) * stride_xk
-            )
-            x_high_ptrs = (
-                x_ptr
-                + x_base
-                + (k_base[None, :, None] + SUB_PAYLOAD_BYTES + offs_j[None, None, :])
-                * stride_xk
-            )
-            tile_mask = token_mask[:, None, None] & kb_mask[None, :, None]
-            x_low = tl.load(x_low_ptrs, mask=tile_mask, other=0.0)
-            x_high = tl.load(x_high_ptrs, mask=tile_mask, other=0.0)
-            x_tile = tl.reshape(
-                tl.join(x_low, x_high), (BLOCK_M, BLOCK_K_BLOCKS * SUB_SIZE)
-            )
-            x_dtype = x_tile.dtype
+        code_ptrs = (
+            w_row_ptrs[:, :, None]
+            + cur_kb[None, :, None] * BLOCK_BYTES
+            + SCALE_BYTES
+            + offs_p[None, None, :]
+        )
+        code_mask = (offs_n[:, None, None] < n) & kb_mask[None, :, None]
+        packed = tl.load(code_ptrs, mask=code_mask, other=0).to(tl.int32)
 
-            code_ptrs = (
-                w_row_ptrs[:, :, None]
-                + cur_kb[None, :, None] * BLOCK_BYTES
-                + SCALE_BYTES
-                + sub * SUB_PAYLOAD_BYTES
-                + offs_j[None, None, :]
-            )
-            code_mask = (offs_n[:, None, None] < n) & kb_mask[None, :, None]
-            packed = tl.load(code_ptrs, mask=code_mask, other=0).to(tl.int32)
-            low_codes = _codebook(packed & 0xF)
-            high_codes = _codebook(packed >> 4)
+        # Gather per byte, so one tile carries all four sub-block scales.
+        scale_ptrs = (
+            w_row_ptrs[:, :, None]
+            + cur_kb[None, :, None] * BLOCK_BYTES
+            + sub_of_p[None, None, :]
+        )
+        scale = _ue4m3_scale(tl.load(scale_ptrs, mask=code_mask, other=0).to(tl.int32))
 
-            scale_ptrs = w_row_ptrs + cur_kb[None, :] * BLOCK_BYTES + sub
-            scale_mask = (offs_n[:, None] < n) & kb_mask[None, :]
-            scale = _ue4m3_scale(
-                tl.load(scale_ptrs, mask=scale_mask, other=0).to(tl.int32)
-            ).to(x_dtype)
+        w_low = _codebook(packed & 0xF) * scale
+        w_high = _codebook(packed >> 4) * scale
+        # tl.dot requires matching operand dtypes; the codebook returns float32
+        # regardless of the scale's dtype, so cast after the product.
+        w_tile = tl.reshape(
+            tl.join(w_low, w_high), (BLOCK_N, BLOCK_K_BLOCKS * BLOCK_SIZE)
+        ).to(x_dtype)
 
-            w_low = low_codes * scale[:, :, None]
-            w_high = high_codes * scale[:, :, None]
-            # tl.dot requires matching operand dtypes; the codebook returns
-            # float32 regardless of the scale's dtype, so cast after the product.
-            w_tile = tl.reshape(
-                tl.join(w_low, w_high), (BLOCK_N, BLOCK_K_BLOCKS * SUB_SIZE)
-            ).to(x_dtype)
-
-            acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
+        acc = tl.dot(x_tile, tl.trans(w_tile), acc=acc)
 
     y_ptrs = y_ptr + offs_output[:, None] * stride_ym + offs_n[None, :] * stride_yn
     y_mask = token_mask[:, None] & (offs_n[None, :] < n)
@@ -158,4 +169,5 @@ def ggml_moe_nvfp4_triton(
         top_k,
         tokens,
         GGML_TYPE_NVFP4,
+        block_n=MOE_BLOCK_N,
     )
