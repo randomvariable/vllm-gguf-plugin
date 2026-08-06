@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
+from .mxfp4 import ggml_moe_mxfp4_triton
+from .nvfp4 import ggml_moe_nvfp4_triton
 from .q1_0 import ggml_moe_q1_0_triton
 from .q2_0 import ggml_moe_q2_0_triton
 from .q2_0_rocmfpx import ggml_moe_q2_0_rocmfpx_triton
@@ -30,6 +32,8 @@ __all__ = [
     "ggml_moe_q3_0_rocmfpx_triton",
     "ggml_moe_q2_0_rocmfpx_triton",
     "ggml_moe_q8_1_triton",
+    "ggml_moe_mxfp4_triton",
+    "ggml_moe_nvfp4_triton",
     "ggml_moe_q1_0_triton",
     "ggml_moe_q2_0_triton",
     "ggml_moe_tq1_0_triton",

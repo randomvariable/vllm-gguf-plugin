@@ -152,7 +152,9 @@ def test_unsupported_type_still_falls_back(
     """A type with no Triton kernel must not be forced into the fused path."""
     monkeypatch.setattr(ops, "_rocmfpx_gfx115x_available", lambda *_: True)
 
-    unsupported = 39  # MXFP4: no kernel anywhere in the plugin
+    # IQ1_BN: decoders exist but no fused-MoE kernel. MXFP4 (39) previously
+    # stood in here and no longer can, now that it has one.
+    unsupported = 134
     assert unsupported not in TRITON_MOE_DISPATCH
 
     def unexpected(*_: object, **__: object) -> torch.Tensor:
