@@ -13,6 +13,7 @@ from collections.abc import Sequence
 import pytest
 import torch
 
+from tests.numerics import assert_gemm_close
 from vllm_gguf_plugin.rocmfpx_types import GGML_TYPE_Q3_0_ROCMFPX
 from vllm_gguf_plugin.triton.gemm.interface import ggml_mul_mat_a8_triton
 
@@ -114,14 +115,19 @@ def _reference_gemm(weights: torch.Tensor, activations: torch.Tensor) -> torch.T
 
 
 def _assert_close(
-    actual: torch.Tensor, expected: torch.Tensor, dtype: torch.dtype
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    activations: torch.Tensor,
+    weights: torch.Tensor,
 ) -> None:
-    if dtype == torch.float32:
-        torch.testing.assert_close(actual, expected, atol=2e-5, rtol=2e-6)
-    elif dtype == torch.float16:
-        torch.testing.assert_close(actual, expected, atol=0.125, rtol=1e-3)
-    else:
-        torch.testing.assert_close(actual, expected, atol=1.0, rtol=8e-3)
+    """Compare against the reference using bounds derived from the tensors.
+
+    See tests/numerics.py. The bound comes from the activation dtype's mantissa
+    width, the reduction length, and the measured cancellation between the
+    activations and the decoded weights -- all read off the tensors under test
+    rather than fitted to an observed failure.
+    """
+    assert_gemm_close(actual, expected, activations, _reference_decode(weights))
 
 
 def test_type104_packing_oracle_round_trips_every_code() -> None:
@@ -155,7 +161,7 @@ def test_type104_public_dense_gemm_matches_independent_abi_oracle(
 
     assert output.shape == (*activation_shape[:-1], rows)
     assert output.dtype == dtype
-    _assert_close(output, _reference_gemm(weights, activations), dtype)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 @pytest.mark.parametrize("dtype", ACTIVATION_DTYPES)
@@ -187,7 +193,7 @@ def test_type104_public_dense_gemm_handles_cross_byte_code_boundaries(
     output = ggml_mul_mat_a8_triton(weights, activations, GGML_TYPE_Q3_0_ROCMFPX, rows)
 
     assert output.shape == (5, rows)
-    _assert_close(output, _reference_gemm(weights, activations), dtype)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 @pytest.mark.parametrize(
@@ -217,7 +223,7 @@ def test_type104_public_dense_gemm_zeroes_reserved_scale_per_half(
         assert torch.all(decoded[:, :16] == 0.0)
     if high_scale > 0x7E:
         assert torch.all(decoded[:, 16:] == 0.0)
-    _assert_close(output, _reference_gemm(weights, activations), torch.float32)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 @pytest.mark.parametrize(

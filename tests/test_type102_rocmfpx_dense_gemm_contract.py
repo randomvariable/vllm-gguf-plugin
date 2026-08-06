@@ -15,6 +15,7 @@ from collections.abc import Sequence
 import pytest
 import torch
 
+from tests.numerics import assert_gemm_close
 from vllm_gguf_plugin.rocmfpx_types import GGML_TYPE_Q6_0_ROCMFPX
 from vllm_gguf_plugin.triton.gemm.interface import ggml_mul_mat_a8_triton
 
@@ -117,14 +118,19 @@ def _reference_gemm(weights: torch.Tensor, activations: torch.Tensor) -> torch.T
 
 
 def _assert_close(
-    actual: torch.Tensor, expected: torch.Tensor, dtype: torch.dtype
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    activations: torch.Tensor,
+    weights: torch.Tensor,
 ) -> None:
-    if dtype == torch.float32:
-        torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-6)
-    elif dtype == torch.float16:
-        torch.testing.assert_close(actual, expected, atol=4.0, rtol=1e-3)
-    else:
-        torch.testing.assert_close(actual, expected, atol=32.0, rtol=8e-3)
+    """Compare against the reference using bounds derived from the tensors.
+
+    See tests/numerics.py. The bound comes from the activation dtype's mantissa
+    width, the reduction length, and the measured cancellation between the
+    activations and the decoded weights -- all read off the tensors under test
+    rather than fitted to an observed failure.
+    """
+    assert_gemm_close(actual, expected, activations, _reference_decode(weights))
 
 
 def _decode_via_public_gemm(weights: torch.Tensor) -> torch.Tensor:
@@ -158,7 +164,7 @@ def test_type102_public_dense_gemm_matches_independent_abi_oracle(
 
     assert output.shape == (*activation_shape[:-1], rows)
     assert output.dtype == dtype
-    _assert_close(output, _reference_gemm(weights, activations), dtype)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 def test_type102_public_dense_gemm_decodes_cross_byte_code_boundaries() -> None:

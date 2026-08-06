@@ -7,6 +7,7 @@ from math import prod
 import pytest
 import torch
 
+from tests.numerics import assert_gemm_close
 from vllm_gguf_plugin import ops
 from vllm_gguf_plugin.rocmfpx_types import GGML_TYPE_Q4_0_ROCMFP4_FAST
 
@@ -83,14 +84,19 @@ def _cuda_or_rocm() -> bool:
 
 
 def _assert_close(
-    actual: torch.Tensor, expected: torch.Tensor, dtype: torch.dtype
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    activations: torch.Tensor,
+    weights: torch.Tensor,
 ) -> None:
-    if dtype == torch.float32:
-        torch.testing.assert_close(actual, expected, atol=2e-5, rtol=2e-6)
-    elif dtype == torch.float16:
-        torch.testing.assert_close(actual, expected, atol=0.125, rtol=1e-3)
-    else:
-        torch.testing.assert_close(actual, expected, atol=1.0, rtol=8e-3)
+    """Compare against the reference using bounds derived from the tensors.
+
+    See tests/numerics.py. The bound comes from the activation dtype's mantissa
+    width, the reduction length, and the measured cancellation between the
+    activations and the decoded weights -- all read off the tensors under test
+    rather than fitted to an observed failure.
+    """
+    assert_gemm_close(actual, expected, activations, _reference_decode(weights))
 
 
 @pytest.mark.parametrize(
@@ -160,7 +166,7 @@ def test_type_101_gemm_matches_independent_oracle_for_tails_and_ranks(
     assert output.shape == (*activation_shape[:-1], rows)
     assert output.dtype == dtype
     assert output.device == activations.device
-    _assert_close(output, _reference_gemm(weights, activations), dtype)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 @pytest.mark.skipif(
@@ -209,7 +215,7 @@ def test_type_101_gemm_broadcasts_scales_across_n_boundary() -> None:
 
     output = _kernel()(weights, activations, row=rows)
 
-    _assert_close(output, _reference_gemm(weights, activations), torch.float32)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 @pytest.mark.skipif(
@@ -321,13 +327,19 @@ def test_type_101_gemm_accepts_noncontiguous_inputs_by_materializing_contiguous(
     None
 ):
     weights = _make_weights(rows=2, blocks=2).cuda()
-    padded = torch.randn((3, 64), dtype=torch.float32, device="cuda")
+    # The stride-2 slice must still be as wide as the weights, so the source has
+    # to be twice the hidden size. A same-width source yields a half-width view
+    # and the call is rejected for a hidden-size mismatch before the kernel is
+    # ever reached, which would leave non-contiguous handling untested.
+    hidden = 2 * BLOCK_SIZE
+    padded = torch.randn((3, 2 * hidden), dtype=torch.float32, device="cuda")
     activations = padded[:, ::2]
+    assert activations.shape[-1] == hidden
     assert not activations.is_contiguous()
 
     output = _kernel()(weights, activations, row=2)
 
-    _assert_close(output, _reference_gemm(weights, activations), torch.float32)
+    _assert_close(output, _reference_gemm(weights, activations), activations, weights)
 
 
 def test_type_101_public_gemm_uses_dedicated_triton_route(monkeypatch) -> None:
