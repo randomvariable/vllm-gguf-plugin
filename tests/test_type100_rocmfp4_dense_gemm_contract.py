@@ -7,7 +7,11 @@ from collections.abc import Sequence
 import pytest
 import torch
 
-from tests.numerics import assert_gemm_close
+from tests.numerics import (
+    GuardedInput,
+    assert_gemm_close,
+    assert_no_out_of_bounds_read,
+)
 from vllm_gguf_plugin import ops
 from vllm_gguf_plugin.rocmfpx_types import GGML_TYPE_Q4_0_ROCMFP4
 
@@ -133,3 +137,24 @@ def test_type100_public_dense_gemm_rejects_empty_dimensions(
 ) -> None:
     with pytest.raises(ValueError, match="positive dimensions"):
         ops.ggml_mul_mat_a8(weights, activations, GGML_TYPE_Q4_0_ROCMFP4, row)
+
+
+def test_type100_dense_gemm_stays_within_weight_bounds() -> None:
+    """The kernel must not read past the end of the packed weight buffer.
+
+    This decoder computes byte offsets into a packed buffer, so an addressing
+    error reads neighbouring memory and still returns plausible numbers, which
+    a comparison against the reference cannot see. The weights are padded and
+    the padding is refilled between two runs; the payload is unchanged, so an
+    in-bounds kernel must produce identical output both times.
+    """
+    weights = _make_weights(rows=5, blocks=3)
+    activations = torch.randn(4, 3 * BLOCK_SIZE, dtype=torch.float32)
+    guarded = GuardedInput(weights)
+
+    def invoke() -> torch.Tensor:
+        return ops.ggml_mul_mat_a8(
+            guarded.tensor, activations, GGML_TYPE_Q4_0_ROCMFP4, 5
+        )
+
+    assert_no_out_of_bounds_read(invoke, guarded, label="type 100 GEMM")

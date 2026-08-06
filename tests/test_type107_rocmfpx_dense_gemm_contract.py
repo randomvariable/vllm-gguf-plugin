@@ -16,7 +16,11 @@ from collections.abc import Sequence
 import pytest
 import torch
 
-from tests.numerics import assert_gemm_close
+from tests.numerics import (
+    GuardedInput,
+    assert_gemm_close,
+    assert_no_out_of_bounds_read,
+)
 from vllm_gguf_plugin.triton.gemm.interface import ggml_mul_mat_a8_triton
 
 GGML_TYPE_Q2_0_ROCMFPX = 107
@@ -230,3 +234,24 @@ def test_type107_public_dense_gemm_rejects_row_mismatch() -> None:
 
     with pytest.raises(ValueError, match="row"):
         ggml_mul_mat_a8_triton(weights, activations, GGML_TYPE_Q2_0_ROCMFPX, 3)
+
+
+def test_type107_dense_gemm_stays_within_weight_bounds() -> None:
+    """The kernel must not read past the end of the packed weight buffer.
+
+    This decoder computes byte offsets into a packed buffer, so an addressing
+    error reads neighbouring memory and still returns plausible numbers, which
+    a comparison against the reference cannot see. The weights are padded and
+    the padding is refilled between two runs; the payload is unchanged, so an
+    in-bounds kernel must produce identical output both times.
+    """
+    weights = _make_weights(rows=5, blocks=3)
+    activations = torch.randn(4, 3 * BLOCK_SIZE, dtype=torch.float32)
+    guarded = GuardedInput(weights)
+
+    def invoke() -> torch.Tensor:
+        return ggml_mul_mat_a8_triton(
+            guarded.tensor, activations, GGML_TYPE_Q2_0_ROCMFPX, 5
+        )
+
+    assert_no_out_of_bounds_read(invoke, guarded, label="type 107 GEMM")

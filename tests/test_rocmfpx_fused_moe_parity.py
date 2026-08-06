@@ -25,7 +25,13 @@ from collections.abc import Callable, Sequence
 import pytest
 import torch
 
-from tests.numerics import assert_close, assert_finite_range, uses_tf32
+from tests.numerics import (
+    GuardedInput,
+    assert_close,
+    assert_finite_range,
+    assert_no_out_of_bounds_read,
+    uses_tf32,
+)
 from vllm_gguf_plugin.triton.fused_moe.interface import ggml_moe_a8_triton
 
 BLOCK_SIZE = 32
@@ -340,6 +346,52 @@ def test_rocmfpx_fused_moe_reduced_precision_activations(
     here while passing every float32-only test.
     """
     _assert_moe_parity(quant_type, quant_type, dtype=dtype)
+
+
+@requires_gpu
+@pytest.mark.parametrize("quant_type", sorted(SPECS))
+def test_rocmfpx_fused_moe_stays_within_weight_bounds(quant_type: int) -> None:
+    """No MoE kernel may read past the end of its packed weight buffer.
+
+    These decoders compute byte and plane offsets into a packed buffer, so an
+    addressing error reads neighbouring memory and still yields plausible
+    numbers -- which a value comparison against a reference cannot see, because
+    the reference is only consulted for the elements that were asked for.
+
+    The weights are padded either side and the padding is refilled between two
+    runs. The payload does not change, so an in-bounds kernel must produce
+    identical output both times.
+    """
+    torch.manual_seed(quant_type)
+    experts, tokens, top_k = 4, 8, 2
+    hidden, inter = 64, 64
+
+    x = torch.randn(tokens, hidden, dtype=torch.float32, device="cuda")
+    w13 = _pack(quant_type, experts, 2 * inter, hidden // BLOCK_SIZE)
+    w2 = _pack(quant_type, experts, hidden, inter // BLOCK_SIZE)
+    topk_ids = torch.randint(
+        0, experts, (tokens, top_k), dtype=torch.int32, device="cuda"
+    )
+    topk_weights = torch.rand(tokens, top_k, dtype=torch.float32, device="cuda")
+
+    guarded_w13 = GuardedInput(w13)
+    guarded_w2 = GuardedInput(w2)
+
+    def invoke() -> torch.Tensor:
+        return _fused_moe(
+            x,
+            guarded_w13.tensor,
+            guarded_w2.tensor,
+            quant_type,
+            quant_type,
+            topk_ids,
+            topk_weights,
+            inter,
+        )
+
+    assert_no_out_of_bounds_read(
+        invoke, guarded_w13, guarded_w2, label=f"type {quant_type} MoE"
+    )
 
 
 @requires_gpu

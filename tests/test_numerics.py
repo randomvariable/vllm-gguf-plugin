@@ -14,9 +14,11 @@ import pytest
 import torch
 
 from tests.numerics import (
+    GuardedInput,
     SentinelTensor,
     assert_close,
     assert_finite_range,
+    assert_no_out_of_bounds_read,
     dot_condition,
     epsilon,
     max_nmse,
@@ -385,6 +387,68 @@ class TestCancellation:
         expected = torch.randn(8, 64) * 10
         with pytest.raises(AssertionError):
             assert_close(expected * 0.5, expected, torch.float32, 96, condition=8e3)
+
+
+class TestGuardedInput:
+    """Differential detection of out-of-bounds reads.
+
+    Verified against a real over-reading Triton kernel on gfx1151: the clean
+    kernel passes and the over-reading one is caught.
+    """
+
+    def test_payload_is_preserved(self) -> None:
+        payload = torch.arange(12, dtype=torch.float32).reshape(3, 4)
+        guarded = GuardedInput(payload)
+        assert torch.equal(guarded.tensor, payload)
+        assert guarded.tensor.shape == (3, 4)
+
+    def test_payload_survives_repoisoning(self) -> None:
+        """Changing the padding must not disturb the payload."""
+        payload = torch.arange(8, dtype=torch.float32)
+        guarded = GuardedInput(payload)
+        guarded.poison(0xFF)
+        assert torch.equal(guarded.tensor, payload)
+
+    def test_in_bounds_reader_passes(self) -> None:
+        guarded = GuardedInput(torch.arange(8, dtype=torch.float32))
+        assert_no_out_of_bounds_read(lambda: guarded.tensor * 2, guarded)
+
+    def test_out_of_bounds_reader_is_caught(self) -> None:
+        """Reading past the payload changes with the padding, so it is caught."""
+        guarded = GuardedInput(torch.arange(8, dtype=torch.float32))
+        raw = guarded.tensor.untyped_storage()
+        overrun = torch.empty(16, dtype=torch.float32)
+
+        def read_past_end() -> torch.Tensor:
+            flat = torch.frombuffer(
+                memoryview(bytearray(raw.cpu()[: 24 * 4])), dtype=torch.float32
+            )
+            overrun.copy_(flat[:16])
+            return overrun.clone()
+
+        with pytest.raises(AssertionError, match="out-of-bounds read"):
+            assert_no_out_of_bounds_read(read_past_end, guarded)
+
+    def test_requires_contiguous_payload(self) -> None:
+        """Padding only detects overruns if it is genuinely adjacent."""
+        strided = torch.arange(16, dtype=torch.float32)[::2]
+        with pytest.raises(ValueError, match="contiguous"):
+            GuardedInput(strided)
+
+    def test_requires_at_least_one_guarded_input(self) -> None:
+        with pytest.raises(ValueError, match="at least one"):
+            assert_no_out_of_bounds_read(lambda: torch.zeros(4))
+
+    def test_label_appears_in_failure(self) -> None:
+        guarded = GuardedInput(torch.zeros(4))
+        calls = {"n": 0}
+
+        def unstable() -> torch.Tensor:
+            calls["n"] += 1
+            return torch.full((4,), float(calls["n"]))
+
+        with pytest.raises(AssertionError, match="decode stage"):
+            assert_no_out_of_bounds_read(unstable, guarded, label="decode stage")
 
 
 class TestChainedBound:

@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import math
 import os
+from collections.abc import Callable
 
 import torch
 
@@ -356,6 +357,11 @@ def assert_finite_range(
 _CANARY_BEFORE = 0x5A
 _CANARY_AFTER = 0xA5
 
+# Two fills for differential read detection. They differ in every bit position,
+# so a read of any width sees a change.
+_POISON_A = 0x00
+_POISON_B = 0xFF
+
 
 class SentinelTensor:
     """A tensor flanked by canary regions that detect out-of-bounds access.
@@ -416,6 +422,87 @@ class SentinelTensor:
                 f"{prefix}out-of-bounds write: {head_bad} byte(s) before the "
                 f"tensor, {tail_bad} after (shape={self._shape})"
             )
+
+
+class GuardedInput:
+    """An input tensor padded with poison, to detect out-of-bounds *reads*.
+
+    :class:`SentinelTensor` detects out-of-bounds writes: the canary bytes are
+    compared after the kernel runs, and a stray store changes them. A stray
+    *load* leaves them untouched, so that mechanism cannot see it -- yet reads
+    are the likelier failure for these decoders, which compute byte and plane
+    offsets and index a packed buffer rather than writing to one.
+
+    Detection is differential instead. The padding either side of the payload is
+    filled with a chosen byte, the kernel is run, the padding is refilled with a
+    *different* byte, and the kernel is run again. The payload is untouched, so a
+    kernel that stays in bounds must produce identical output both times. If the
+    output moves, the only explanation is that it read the padding.
+
+    This detects the reads that matter -- ones that reach real neighbouring
+    memory and yield plausible numbers. It cannot detect a read far enough out to
+    fault, which is a crash rather than a silent wrong answer.
+    """
+
+    def __init__(
+        self,
+        payload: torch.Tensor,
+        *,
+        pad: int = 1024,
+    ) -> None:
+        if not payload.is_contiguous():
+            raise ValueError("payload must be contiguous for padding to be adjacent")
+        self._shape = tuple(payload.shape)
+        self._pad = pad
+        count = payload.numel()
+        self._raw = torch.empty(
+            count + 2 * pad, dtype=payload.dtype, device=payload.device
+        )
+        self._view = self._raw[pad : pad + count].view(self._shape)
+        self._view.copy_(payload)
+        self._bytes = self._raw.view(torch.uint8)
+        self._pad_bytes = pad * self._raw.element_size()
+        self.poison(_POISON_A)
+
+    def poison(self, value: int) -> None:
+        """Fill both padding regions with ``value``."""
+        self._bytes[: self._pad_bytes] = value
+        self._bytes[-self._pad_bytes :] = value
+
+    @property
+    def tensor(self) -> torch.Tensor:
+        """The payload view. Pass this to the kernel under test."""
+        return self._view
+
+
+def assert_no_out_of_bounds_read(
+    run: Callable[[], torch.Tensor],
+    *guarded: GuardedInput,
+    label: str = "",
+) -> None:
+    """Assert ``run`` does not read past the bounds of ``guarded`` inputs.
+
+    ``run`` is invoked twice with different poison in the padding and must
+    return an identical result both times.
+    """
+    if not guarded:
+        raise ValueError("at least one guarded input is required")
+
+    for item in guarded:
+        item.poison(_POISON_A)
+    first = run().clone()
+
+    for item in guarded:
+        item.poison(_POISON_B)
+    second = run()
+
+    if not torch.equal(first, second):
+        prefix = f"{label}: " if label else ""
+        differing = int((first != second).sum().item())
+        raise AssertionError(
+            f"{prefix}out-of-bounds read: output changed in {differing} "
+            f"element(s) when only padding outside the input changed"
+        )
 
 
 def sentinel_zeros(
