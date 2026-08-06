@@ -295,44 +295,186 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
 
             la = f"model.layers.{i}.linear_attn"
             # --- 1:1 GGUF→HF name mappings for split-projection path ---
-            gguf_to_hf_name_map[f"blk.{i}.attn_qkv.weight"] = (
-                f"{la}.in_proj_qkv.weight"
-            )
-            gguf_to_hf_name_map[f"blk.{i}.attn_gate.weight"] = (
-                f"{la}.in_proj_z.weight"
-            )
-            gguf_to_hf_name_map[f"blk.{i}.ssm_beta.weight"] = (
-                f"{la}.in_proj_b.weight"
-            )
-            gguf_to_hf_name_map[f"blk.{i}.ssm_alpha.weight"] = (
-                f"{la}.in_proj_a.weight"
-            )
-            gguf_to_hf_name_map[f"blk.{i}.ssm_out.weight"] = (
-                f"{la}.out_proj.weight"
-            )
+            gguf_to_hf_name_map[f"blk.{i}.attn_qkv.weight"] = f"{la}.in_proj_qkv.weight"
+            gguf_to_hf_name_map[f"blk.{i}.attn_gate.weight"] = f"{la}.in_proj_z.weight"
+            gguf_to_hf_name_map[f"blk.{i}.ssm_beta.weight"] = f"{la}.in_proj_b.weight"
+            gguf_to_hf_name_map[f"blk.{i}.ssm_alpha.weight"] = f"{la}.in_proj_a.weight"
+            gguf_to_hf_name_map[f"blk.{i}.ssm_out.weight"] = f"{la}.out_proj.weight"
             gguf_to_hf_name_map[f"blk.{i}.ssm_dt.bias"] = f"{la}.dt_bias"
-            gguf_to_hf_name_map[f"blk.{i}.ssm_norm.weight"] = (
-                f"{la}.norm.weight"
-            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_norm.weight"] = f"{la}.norm.weight"
             # Single-source transforms handled in transform_weight.
-            gguf_to_hf_name_map[f"blk.{i}.ssm_conv1d.weight"] = (
-                f"{la}.conv1d.weight"
-            )
+            gguf_to_hf_name_map[f"blk.{i}.ssm_conv1d.weight"] = f"{la}.conv1d.weight"
             gguf_to_hf_name_map[f"blk.{i}.ssm_a"] = f"{la}.A_log"
 
-    def transform_weight(
+    # llama.cpp's converter tiles V heads for cheap ggml_repeat broadcast;
+    # these are the linear-attn params it touches. Value is (kind, head_dim)
+    # where head_dim is None => use linear_value_head_dim, 1 => per-head scalar.
+    _QWEN35MOE_V_REORDER: dict[str, tuple[str, int | None]] = {
+        "in_proj_qkv": ("qkv_rows", None),
+        "in_proj_z": ("rows", None),
+        "in_proj_b": ("rows", 1),
+        "in_proj_a": ("rows", 1),
+        "out_proj": ("cols", None),
+        "dt_bias": ("rows", 1),
+        "A_log": ("rows", 1),
+        "conv1d": ("conv_rows", None),
+    }
+
+    @staticmethod
+    def _undo_v_head_tiling(
+        tensor: torch.Tensor,
+        dim: int,
+        num_k_heads: int,
+        num_v_per_k: int,
+        head_dim: int,
+    ) -> torch.Tensor:
+        """Invert llama.cpp's grouped->tiled V-head permutation.
+
+        The converter (``conversion/qwen.py::_reorder_v_heads``) reshapes to
+        ``(num_k_heads, num_v_per_k, head_dim)`` and swaps the first two axes.
+        The inverse therefore reshapes to ``(num_v_per_k, num_k_heads,
+        head_dim)`` and swaps back -- *not* a second forward application,
+        which only coincides when ``num_k_heads == num_v_per_k``.
+        """
+        shape = list(tensor.shape)
+        if dim < 0:
+            dim += len(shape)
+        new_shape = (
+            shape[:dim] + [num_v_per_k, num_k_heads, head_dim] + shape[dim + 1 :]
+        )
+        out = tensor.reshape(*new_shape)
+        perm = list(range(len(new_shape)))
+        perm[dim], perm[dim + 1] = perm[dim + 1], perm[dim]
+        return out.permute(*perm).contiguous().reshape(*shape)
+
+    def _maybe_undo_v_head_tiling(
         self, hf_name: str, weight: torch.Tensor
     ) -> torch.Tensor:
+        """Restore HF grouped V-head order for qwen35moe linear-attn params.
+
+        llama.cpp stores V heads tiled (``[G0_v0, G1_v0, ..., G0_v1, ...]``)
+        so ``ggml_repeat`` can broadcast; vLLM's GDN expects HF grouped order
+        (``[G0_v0, G0_v1, G1_v0, ...]``). This is a pure permutation, so
+        skipping it leaves magnitudes healthy while scrambling semantics.
+
+        Row/column permutations are safe on packed quantised bytes: rows are
+        independent, and ``head_v_dim`` is a whole number of quant blocks so
+        the ``out_proj`` column permutation is block-aligned.
+        """
+        config = getattr(self, "config", None)
+        if config is None or ".linear_attn." not in hf_name:
+            return weight
+        model_type = getattr(config, "model_type", None)
+        if model_type not in ("qwen3_5_moe_text", "qwen35moe"):
+            return weight
+
+        num_k_heads = getattr(config, "linear_num_key_heads", 0) or 0
+        num_v_heads = getattr(config, "linear_num_value_heads", 0) or 0
+        # The converter only reorders when the counts differ.
+        if num_k_heads <= 0 or num_v_heads <= 0 or num_k_heads == num_v_heads:
+            return weight
+
+        # Quantised params also yield a scalar ``.qweight_type`` sidecar; only
+        # the weight payload itself carries V-head structure.
+        if hf_name.endswith(".qweight_type") or weight.ndim == 0:
+            return weight
+
+        param = hf_name.split(".linear_attn.", 1)[1].split(".")[0]
+        entry = self._QWEN35MOE_V_REORDER.get(param)
+        if entry is None:
+            return weight
+        kind, head_dim = entry
+
+        head_k_dim = getattr(config, "linear_key_head_dim", 0) or 0
+        head_v_dim = getattr(config, "linear_value_head_dim", 0) or 0
+        num_v_per_k = num_v_heads // num_k_heads
+        if head_dim is None:
+            head_dim = head_v_dim
+
+        if kind == "rows":
+            if weight.ndim == 1:
+                return self._undo_v_head_tiling(
+                    weight.unsqueeze(-1), 0, num_k_heads, num_v_per_k, head_dim
+                ).squeeze(-1)
+            return self._undo_v_head_tiling(
+                weight, 0, num_k_heads, num_v_per_k, head_dim
+            )
+
+        if kind == "qkv_rows":
+            # Only the V rows were permuted; Q and K rows are untouched.
+            qk_rows = head_k_dim * num_k_heads * 2
+            qk_part, v_part = weight[:qk_rows], weight[qk_rows:]
+            v_part = self._undo_v_head_tiling(
+                v_part, 0, num_k_heads, num_v_per_k, head_dim
+            )
+            return torch.cat([qk_part, v_part], dim=0).contiguous()
+
+        if kind == "conv_rows":
+            qk_channels = head_k_dim * num_k_heads * 2
+            qk_part, v_part = weight[:qk_channels], weight[qk_channels:]
+            v_part = self._undo_v_head_tiling(
+                v_part, 0, num_k_heads, num_v_per_k, head_dim
+            )
+            return torch.cat([qk_part, v_part], dim=0).contiguous()
+
+        # kind == "cols": out_proj permutes the input dimension. For packed
+        # weights the columns are bytes, so scale the group width by the
+        # number of packed bytes each head occupies.
+        group_width = head_dim
+        if weight.dtype == torch.uint8:
+            v_bytes = weight.shape[1]
+            group_width = v_bytes // num_v_heads
+        return self._undo_v_head_tiling(
+            weight, 1, num_k_heads, num_v_per_k, group_width
+        )
+
+    def _maybe_undo_norm_plus_one(
+        self, hf_name: str, weight: torch.Tensor
+    ) -> torch.Tensor:
+        """Remove the ``+1`` llama.cpp's converter bakes into norm weights.
+
+        ``conversion/qwen.py::Qwen3NextModel.modify_tensors`` adds 1 to every
+        tensor ending in ``norm.weight`` except ``linear_attn.norm.weight``,
+        so llama.cpp's runtime can use a plain ``x * w`` RMSNorm.
+
+        vLLM maps those same norms to ``GemmaRMSNorm``, which computes
+        ``x * (1 + w)`` itself.  Loading the GGUF value unchanged therefore
+        applies ``x * (2 + w_hf)`` -- roughly double strength on every norm.
+
+        ``linear_attn.norm`` is excluded by the converter and feeds
+        ``RMSNormGated`` (plain ``x * w``), so it passes through untouched.
+        """
+        if not hf_name.endswith("norm.weight"):
+            return weight
+        if hf_name.endswith(".linear_attn.norm.weight"):
+            return weight
+        config = getattr(self, "config", None)
+        if config is None:
+            return weight
+        if getattr(config, "model_type", None) not in (
+            "qwen3_5_moe_text",
+            "qwen35moe",
+        ):
+            return weight
+        return weight - 1
+
+    def transform_weight(self, hf_name: str, weight: torch.Tensor) -> torch.Tensor:
         """Apply per-tensor transforms for qwen35moe linear-attention params.
 
+        - V-head order: llama.cpp tiles V heads for ``ggml_repeat``; vLLM
+          expects HF grouped order, so the permutation is inverted first.
         - ``A_log``: GGUF ``ssm_a`` already stores ``-exp(A_log)`` (negative),
           matching llama.cpp which multiplies it straight into the gate.
           vLLM instead computes ``-A_log.exp()``, so it needs the raw
           ``A_log`` back: ``A_log = log(-ssm_a)``.
-        - ``conv1d.weight``: GGUF [kernel, channels] → vLLM [channels, 1, kernel].
+        - ``conv1d.weight``: GGUF [kernel, channels] -> vLLM [channels, 1, kernel].
 
         All other names pass through unchanged.
         """
+        # Undo the V-head tiling before any reshape, so downstream transforms
+        # operate on HF-ordered data.
+        weight = self._maybe_undo_v_head_tiling(hf_name, weight)
+        weight = self._maybe_undo_norm_plus_one(hf_name, weight)
         if hf_name.endswith(".linear_attn.A_log"):
             return torch.log(torch.clamp(-weight, min=1e-4))
         # GGUF's shape metadata is reversed relative to the materialized
@@ -360,6 +502,7 @@ class GGUFWeightsAdapter(BaseGGUFWeightsAdapter):
                     yield expert_name, expert_weight
             else:
                 yield hf_name, weight
+
     @staticmethod
     def _get_all_gguf_files(model_path: str) -> list[str]:
         match = re.search(r"-(\d+)-of-(\d+)\.gguf$", model_path)
