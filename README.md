@@ -42,7 +42,7 @@ consumer GPUs without FP8/FP4 tensor cores:
 | Target | GPU | Notes |
 |---|---|---|
 | **AMD Strix Halo** | Radeon 8060S, `gfx1151` / RDNA3.5 | No FP8/FP4 tensor cores; software-dequant formats support large models in 96 GB UMA |
-| **NVIDIA DGX Spark** | Grace Blackwell, `sm_121a` | Software-dequant formats; `MXFP4`/`NVFP4` support is deferred |
+| **NVIDIA DGX Spark** | Grace Blackwell, `sm_121a` | Software-dequant formats; `MXFP4`/`NVFP4` via Triton GEMM and MoE, no native kernel |
 
 ## Performance Model
 
@@ -89,7 +89,7 @@ The dispatch tables in `ops.py`, `triton/gemm/interface.py`, and
 | **Limited** | ik KSS/KL: `IQ4_KSS`, `IQ2_KL` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Reference dequantization plus materialized-dense path. Registered reference paths; no accelerated capability is advertised |
 | **Reference fallback** | ik KT: `IQ1_KT`, `IQ2_KT`, `IQ3_KT`, `IQ4_KT` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Software dequantization/materialized-dense reference fallback with one FP32 row-prefix per row. KT remains reference-fallback-only; no acceleration is claimed |
 | **Limited** | Ternary and low-bit extended types: `TQ1_0`, `TQ2_0`, `Q2_0`, type-41 `Q1_0` / `Q1_0_G128` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | Native CUDA/HIP dequantization plus Triton GEMM and Triton MoE. No native GEMV/GEMM/MoE kernel exists, so small-batch work dequantizes and falls back to dense. Type 41 is accepted with geometry `(128, 18)`; incompatible type-41 geometry is rejected. Validated on Radeon 8060S (`gfx1151`, ROCm/HIP 7.14.60850, Torch `2.12.0+rocm7.14.0`, Triton 3.7.1, `TRITON_ALLOW_NON_CONSTEXPR_GLOBALS=1`) and NVIDIA GB10 (`sm_121`, CUDA 13.0, Torch `2.13.0+cu130`, Triton 3.7.1) against independent per-format ABI oracles transcribed from llama.cpp `ggml-quants.c` (sequential LSB-first for `Q1_0`/`Q2_0`, plane-major for `TQ2_0`, base-3 packing for `TQ1_0`), covering FP32/FP16/BF16, rank-2/rank-3 activations, tail output rows, and multi-block rows. This is kernel and dispatch validation, not full vLLM end-to-end/model-load validation. |
-| **Deferred** | `MXFP4`, `NVFP4` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not implemented. Do not advertise as supported |
+| **Limited** | FP4: type 39 `MXFP4`, type 40 `NVFP4` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | Triton GEMM and Triton MoE only. No native CUDA/HIP kernel of any kind exists for either format, so small-batch work dequantizes and falls back to dense. Both share the `kvalues_fp4` E2M1 codebook and differ in blocking and scale encoding: `MXFP4` is 32 weights in 17 bytes with one trailing E8M0 scale byte, `NVFP4` is 64 weights in 36 bytes with four leading UE4M3 bytes, one per 16-weight sub-block. Unlike NVIDIA ModelOpt / compressed-tensors `NVFP4`, the GGUF encoding carries no per-tensor global scales and needs no companion tensors. Validated on Radeon 8060S (`gfx1151`, ROCm/HIP 7.14.60850, Torch `2.12.0+rocm7.14.0`, Triton 3.7.1, `TRITON_ALLOW_NON_CONSTEXPR_GLOBALS=1`) and NVIDIA GB10 (`sm_121`, CUDA 13.0, Torch `2.13.0+cu130`, Triton 3.7.1) against independent ABI oracles transcribed from llama.cpp `ggml-quants.c`, covering FP32/FP16/BF16, tail output rows, multi-block rows, reserved scale bytes, and out-of-bounds read guards on both kernel families. This is kernel and dispatch validation, not full vLLM end-to-end/model-load validation. |
 
 The standard baseline is retained from the upstream plugin. Added formats are
 implemented as Python/Triton/native CUDA/HIP ports only where the corresponding
