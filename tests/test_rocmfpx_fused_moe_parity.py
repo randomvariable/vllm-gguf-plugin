@@ -25,6 +25,7 @@ from collections.abc import Callable, Sequence
 import pytest
 import torch
 
+from tests.numerics import assert_close, assert_finite_range, uses_tf32
 from vllm_gguf_plugin.triton.fused_moe.interface import ggml_moe_a8_triton
 
 BLOCK_SIZE = 32
@@ -255,6 +256,11 @@ def _fused_moe(
 _FP16_PIPELINE_PEAK = 4096.0
 
 
+def _reduction_lengths(hidden: int, inter: int) -> tuple[int, int]:
+    """K lengths of the two matmuls in the MoE pipeline, gate/up then down."""
+    return (hidden, inter)
+
+
 def _assert_moe_parity(
     w13_type: int,
     w2_type: int,
@@ -288,18 +294,24 @@ def _assert_moe_parity(
             x = x * (_FP16_PIPELINE_PEAK / peak) ** 0.5
 
     expected = _reference_moe(x, dense13, dense2, topk_ids, topk_weights, inter)
+    assert_finite_range(expected, dtype, label=f"w13={w13_type} w2={w2_type}")
+
     actual = _fused_moe(
         x.to(dtype), w13, w2, w13_type, w2_type, topk_ids, topk_weights, inter
     )
 
-    # Relative tolerance: the reference accumulates per token while the kernel
-    # accumulates over K tiles, so FP32 ordering differs. Observed worst case is
-    # 1.2e-3 on GB10 and exact on gfx1151. Reduced-precision activations carry
-    # their own accumulation error on top of that (bfloat16 has an 8-bit
-    # mantissa), so they get a wider budget.
-    tol = 1e-2 if dtype == torch.float32 else 5e-2
-    scale = expected.abs().max().item() + 1e-6
-    assert (expected - actual.to(torch.float32)).abs().max().item() / scale < tol
+    # The reference accumulates per token while the kernel accumulates over K
+    # tiles, so the two disagree by reassociation error. The bound is derived
+    # from the activation dtype and the two reduction lengths rather than fitted
+    # to an observed failure.
+    assert_close(
+        actual.to(torch.float32),
+        expected,
+        dtype,
+        _reduction_lengths(hidden, inter),
+        tf32=uses_tf32(),
+        label=f"w13={w13_type} w2={w2_type} {dtype}",
+    )
 
 
 @requires_gpu
